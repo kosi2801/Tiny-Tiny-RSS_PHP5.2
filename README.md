@@ -15,6 +15,10 @@ with patches to work with following relaxed requirements compared to the
 * PHP 5.2
 * open_basedir restriction supported
 
+Bugs/Issues
+
+* One Time Passwords are currently disabled because compatibility issues with PHP 5.2
+
 ## Installation
 
 Installation is identical to the [original installation][4] apart from the lower
