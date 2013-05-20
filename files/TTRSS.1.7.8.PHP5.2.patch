@@ -1,0 +1,986 @@
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/api.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/api.php
+--- Tiny-Tiny-RSS-1.7.8/classes/api.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/api.php	2013-04-22 15:43:39.006928900 -0700
+@@ -341,7 +341,7 @@
+ 				);
+ 
+ 				global $pluginhost;
+-				foreach ($pluginhost->get_hooks($pluginhost::HOOK_RENDER_ARTICLE_API) as $p) {
++				foreach ($pluginhost->get_hooks(PluginHost::HOOK_RENDER_ARTICLE_API) as $p) {
+ 					$article = $p->hook_render_article_api(array("article" => $article));
+ 				}
+ 
+@@ -685,7 +685,7 @@
+ 				$headline_row["author"] = $line["author"];
+ 
+ 				global $pluginhost;
+-				foreach ($pluginhost->get_hooks($pluginhost::HOOK_RENDER_ARTICLE_API) as $p) {
++				foreach ($pluginhost->get_hooks(PluginHost::HOOK_RENDER_ARTICLE_API) as $p) {
+ 					$headline_row = $p->hook_render_article_api(array("headline" => $headline_row));
+ 				}
+ 
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/feeds.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/feeds.php
+--- Tiny-Tiny-RSS-1.7.8/classes/feeds.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/feeds.php	2013-04-22 15:40:05.722125600 -0700
+@@ -143,7 +143,7 @@
+ 
+ 		//$reply .= "</h2";
+ 
+-		foreach ($pluginhost->get_hooks($pluginhost::HOOK_HEADLINE_TOOLBAR_BUTTON) as $p) {
++		foreach ($pluginhost->get_hooks(PluginHost::HOOK_HEADLINE_TOOLBAR_BUTTON) as $p) {
+ 			 echo $p->hook_headline_toolbar_button($feed_id, $is_cat);
+ 		}
+ 
+@@ -520,7 +520,7 @@
+ 					$line["content"] = sanitize($this->link, $line["content_preview"],
+ 							sql_bool_to_bool($line['hide_images']), false, $entry_site_url);
+ 
+-					foreach ($pluginhost->get_hooks($pluginhost::HOOK_RENDER_ARTICLE_CDM) as $p) {
++					foreach ($pluginhost->get_hooks(PluginHost::HOOK_RENDER_ARTICLE_CDM) as $p) {
+ 						$line = $p->hook_render_article_cdm($line);
+ 					}
+ 
+@@ -706,7 +706,7 @@
+ 
+ 					$reply['content'] .= "<div style=\"float : right\">";
+ 
+-					foreach ($pluginhost->get_hooks($pluginhost::HOOK_ARTICLE_BUTTON) as $p) {
++					foreach ($pluginhost->get_hooks(PluginHost::HOOK_ARTICLE_BUTTON) as $p) {
+ 						$reply['content'] .= $p->hook_article_button($line);
+ 					}
+ 
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/handler/public.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/handler/public.php
+--- Tiny-Tiny-RSS-1.7.8/classes/handler/public.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/handler/public.php	2013-04-22 15:03:38.407212500 -0700
+@@ -378,7 +378,7 @@
+ 		cleanup_tags($this->link, 14, 50000);
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_UPDATE_TASK, "hook_update_task", $op);
++		$pluginhost->run_hooks($pluginhost->HOOK_UPDATE_TASK, "hook_update_task", $op);
+ 
+ 	}
+ 
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/pluginhost.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pluginhost.php
+--- Tiny-Tiny-RSS-1.7.8/classes/pluginhost.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pluginhost.php	2013-04-24 13:46:33.753231800 -0700
+@@ -110,19 +110,19 @@
+ 					$plugin = new $class($this);
+ 
+ 					switch ($kind) {
+-					case $this::KIND_SYSTEM:
++					case PluginHost::KIND_SYSTEM:
+ 						if ($this->is_system($plugin)) {
+ 							$plugin->init($this);
+ 							$this->register_plugin($class, $plugin);
+ 						}
+ 						break;
+-					case $this::KIND_USER:
++					case PluginHost::KIND_USER:
+ 						if (!$this->is_system($plugin)) {
+ 							$plugin->init($this);
+ 							$this->register_plugin($class, $plugin);
+ 						}
+ 						break;
+-					case $this::KIND_ALL:
++					case PluginHost::KIND_ALL:
+ 						$plugin->init($this);
+ 						$this->register_plugin($class, $plugin);
+ 						break;
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/pref/feeds.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/feeds.php
+--- Tiny-Tiny-RSS-1.7.8/classes/pref/feeds.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/feeds.php	2013-04-22 15:38:03.124738000 -0700
+@@ -1404,7 +1404,7 @@
+ 			__('Display published OPML URL')."</button> ";
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB_SECTION,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB_SECTION,
+ 			"hook_prefs_tab_section", "prefFeedsOPML");
+ 
+ 		print "</div>"; # pane
+@@ -1451,14 +1451,14 @@
+ 			__('Unshare all articles')."</button> ";
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB_SECTION,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB_SECTION,
+ 			"hook_prefs_tab_section", "prefFeedsPublishedGenerated");
+ 
+ 		print "</div>"; #pane
+ 
+ 		global $pluginhost;
+ 
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB,
+ 			"hook_prefs_tab", "prefFeeds");
+ 
+ 		print "</div>"; #container
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/pref/filters.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/filters.php
+--- Tiny-Tiny-RSS-1.7.8/classes/pref/filters.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/filters.php	2013-04-22 15:44:16.529077800 -0700
+@@ -707,7 +707,7 @@
+ 		print "</div>"; #pane
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB,
+ 			"hook_prefs_tab", "prefFilters");
+ 
+ 		print "</div>"; #container
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/pref/labels.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/labels.php
+--- Tiny-Tiny-RSS-1.7.8/classes/pref/labels.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/labels.php	2013-04-22 15:44:50.422211300 -0700
+@@ -320,7 +320,7 @@
+ 		print "</div>"; #pane
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB,
+ 			"hook_prefs_tab", "prefLabels");
+ 
+ 		print "</div>"; #container
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/pref/prefs.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/prefs.php
+--- Tiny-Tiny-RSS-1.7.8/classes/pref/prefs.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/prefs.php	2013-04-22 16:28:02.978516500 -0700
+@@ -311,6 +311,7 @@
+ 
+ 			print "</form>";
+ 
++			/*
+ 			if ($_SESSION["auth_module"] == "auth_internal") {
+ 
+ 				print "<h2>" . __("One time passwords / Authenticator") . "</h2>";
+@@ -416,11 +417,11 @@
+ 
+ 				}
+ 
+-			}
++			} */
+ 		}
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB_SECTION,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB_SECTION,
+ 			"hook_prefs_tab_section", "prefPrefsAuth");
+ 
+ 		print "</div>"; #pane
+@@ -635,7 +636,7 @@
+ 		print "<input dojoType=\"dijit.form.TextBox\" style=\"display : none\" name=\"boolean_prefs\" value=\"$listed_boolean_prefs\">";
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB_SECTION,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB_SECTION,
+ 			"hook_prefs_tab_section", "prefPrefsPrefsInside");
+ 
+ 		print '</div>'; # inside pane
+@@ -666,7 +667,7 @@
+ 				__("Show additional preferences") . "</label>"; */
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB_SECTION,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB_SECTION,
+ 			"hook_prefs_tab_section", "prefPrefsPrefsOutside");
+ 
+ 		print "</form>";
+@@ -720,7 +721,7 @@
+ 		$user_enabled = array_map("trim", explode(",", get_pref($this->link, "_ENABLED_PLUGINS")));
+ 
+ 		$tmppluginhost = new PluginHost($this->link);
+-		$tmppluginhost->load_all($tmppluginhost::KIND_ALL, $_SESSION["uid"]);
++		$tmppluginhost->load_all(PluginHost::KIND_ALL, $_SESSION["uid"]);
+ 		$tmppluginhost->load_data(true);
+ 
+ 		foreach ($tmppluginhost->get_plugins() as $name => $plugin) {
+@@ -831,7 +832,7 @@
+ 		print "</div>"; #pane
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB,
+ 			"hook_prefs_tab", "prefPrefs");
+ 
+ 		print "</div>"; #container
+@@ -841,6 +842,7 @@
+ 		$_SESSION["prefs_show_advanced"] = !$_SESSION["prefs_show_advanced"];
+ 	}
+ 
++/*	
+ 	function otpqrcode() {
+ 		require_once "lib/otphp/vendor/base32.php";
+ 		require_once "lib/otphp/lib/otp.php";
+@@ -901,6 +903,7 @@
+ 		}
+ 
+ 	}
++*/
+ 
+ 	function setplugins() {
+ 		if (is_array($_REQUEST["plugins"]))
+diff -u -r Tiny-Tiny-RSS-1.7.8/classes/pref/users.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/users.php
+--- Tiny-Tiny-RSS-1.7.8/classes/pref/users.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//classes/pref/users.php	2013-04-22 15:45:53.844446400 -0700
+@@ -454,7 +454,7 @@
+ 			print "</div>"; #pane
+ 
+ 			global $pluginhost;
+-			$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB,
++			$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB,
+ 				"hook_prefs_tab", "prefUsers");
+ 
+ 			print "</div>"; #container
+diff -u -r Tiny-Tiny-RSS-1.7.8/include/functions.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//include/functions.php
+--- Tiny-Tiny-RSS-1.7.8/include/functions.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//include/functions.php	2013-04-25 14:51:01.544179900 -0700
+@@ -318,9 +318,10 @@
+ 		global $fetch_last_error;
+ 		global $fetch_last_error_code;
+ 
+-		if (!defined('NO_CURL') && function_exists('curl_init') && !ini_get("open_basedir")) {
++/*		if (!defined('NO_CURL') && function_exists('curl_init') && !ini_get("open_basedir")) { */
++		if (!defined('NO_CURL') && function_exists('curl_init')) {
+ 
+-			if (ini_get("safe_mode")) {
++			if (ini_get("safe_mode") || ini_get("open_basedir")) {
+ 				$ch = curl_init(geturl($url));
+ 			} else {
+ 				$ch = curl_init($url);
+@@ -333,7 +334,9 @@
+ 
+ 			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout ? $timeout : FILE_FETCH_CONNECT_TIMEOUT);
+ 			curl_setopt($ch, CURLOPT_TIMEOUT, $timeout ? $timeout : FILE_FETCH_TIMEOUT);
+-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, !ini_get("safe_mode"));
++/*			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, !ini_get("safe_mode"));
++*/
++			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, !ini_get("safe_mode") && !ini_get("open_basedir"));
+ 			curl_setopt($ch, CURLOPT_MAXREDIRS, 20);
+ 			curl_setopt($ch, CURLOPT_BINARYTRANSFER, true);
+ 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+@@ -342,7 +345,7 @@
+ 			curl_setopt($ch, CURLOPT_USERAGENT, SELF_USER_AGENT);
+ 			curl_setopt($ch, CURLOPT_ENCODING , "gzip");
+ 			curl_setopt($ch, CURLOPT_REFERER, $url);
+-
++			
+ 			if ($post_query) {
+ 				curl_setopt($ch, CURLOPT_POST, true);
+ 				curl_setopt($ch, CURLOPT_POSTFIELDS, $post_query);
+@@ -355,7 +358,7 @@
+ 
+ 			if (curl_errno($ch) === 23 || curl_errno($ch) === 61) {
+ 				curl_setopt($ch, CURLOPT_ENCODING, 'none');
+-				$contents = @curl_exec($ch);
++				$contents = @curl_exec($ch);				
+ 			}
+ 
+ 			if ($contents === false) {
+@@ -368,7 +371,7 @@
+ 			$content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+ 
+ 			$fetch_last_error_code = $http_code;
+-
++			
+ 			if ($http_code != 200 || $type && strpos($content_type, "$type") === false) {
+ 				if (curl_errno($ch) != 0) {
+ 					$fetch_last_error = curl_errno($ch) . " " . curl_error($ch);
+@@ -616,7 +619,7 @@
+ 			$user_id = false;
+ 
+ 			global $pluginhost;
+-			foreach ($pluginhost->get_hooks($pluginhost::HOOK_AUTH_USER) as $plugin) {
++			foreach ($pluginhost->get_hooks(PluginHost::HOOK_AUTH_USER) as $plugin) {
+ 
+ 				$user_id = (int) $plugin->authenticate($login, $password);
+ 
+@@ -727,7 +730,7 @@
+ 			$plugins = get_pref($link, "_ENABLED_PLUGINS", $owner_uid);
+ 
+ 			global $pluginhost;
+-			$pluginhost->load($plugins, $pluginhost::KIND_USER, $owner_uid);
++			$pluginhost->load($plugins, PluginHost::KIND_USER, $owner_uid);
+ 
+ 			if (get_schema_version($link) > 100) {
+ 				$pluginhost->load_data();
+@@ -1962,7 +1965,7 @@
+ 			);
+ 
+ 		global $pluginhost;
+-		foreach ($pluginhost->get_hooks($pluginhost::HOOK_HOTKEY_INFO) as $plugin) {
++		foreach ($pluginhost->get_hooks(PluginHost::HOOK_HOTKEY_INFO) as $plugin) {
+ 			$hotkeys = $plugin->hook_hotkey_info($hotkeys);
+ 		}
+ 
+@@ -2039,7 +2042,7 @@
+ 		}
+ 
+ 		global $pluginhost;
+-		foreach ($pluginhost->get_hooks($pluginhost::HOOK_HOTKEY_MAP) as $plugin) {
++		foreach ($pluginhost->get_hooks(PluginHost::HOOK_HOTKEY_MAP) as $plugin) {
+ 			$hotkeys = $plugin->hook_hotkey_map($hotkeys);
+ 		}
+ 
+@@ -2692,7 +2695,7 @@
+ 		global $pluginhost;
+ 
+ 		if (isset($pluginhost)) {
+-			foreach ($pluginhost->get_hooks($pluginhost::HOOK_SANITIZE) as $plugin) {
++			foreach ($pluginhost->get_hooks(PluginHost::HOOK_SANITIZE) as $plugin) {
+ 				$retval = $plugin->hook_sanitize($doc, $site_url, $allowed_elements, $disallowed_attributes);
+ 				if (is_array($retval)) {
+ 					$doc = $retval[0];
+@@ -3016,7 +3019,7 @@
+ 
+ 			global $pluginhost;
+ 
+-			foreach ($pluginhost->get_hooks($pluginhost::HOOK_RENDER_ARTICLE) as $p) {
++			foreach ($pluginhost->get_hooks(PluginHost::HOOK_RENDER_ARTICLE) as $p) {
+ 				$line = $p->hook_render_article($line);
+ 			}
+ 
+@@ -3093,7 +3096,7 @@
+ 
+ 				global $pluginhost;
+ 
+-				foreach ($pluginhost->get_hooks($pluginhost::HOOK_ARTICLE_BUTTON) as $p) {
++				foreach ($pluginhost->get_hooks(PluginHost::HOOK_ARTICLE_BUTTON) as $p) {
+ 					$rv['content'] .= $p->hook_article_button($line);
+ 				}
+ 
+@@ -3322,7 +3325,7 @@
+ 			global $pluginhost;
+ 
+ 			$pluginhost = new PluginHost($link);
+-			$pluginhost->load(PLUGINS, $pluginhost::KIND_ALL);
++			$pluginhost->load(PLUGINS, PluginHost::KIND_ALL);
+ 
+ 			return true;
+ 		} else {
+@@ -4088,7 +4091,8 @@
+ 					$rv .= file_get_contents($cached_file);
+ 
+ 				} else {
+-					$minified = JShrink\Minifier::minify(file_get_contents("js/$js.js"));
++					$minified = Minifier::minify(file_get_contents("js/$js.js"));
++					$minified = file_get_contents("js/$js.js");
+ 					file_put_contents($cached_file, $minified);
+ 					$rv .= $minified;
+ 				}
+diff -u -r Tiny-Tiny-RSS-1.7.8/include/rssfuncs.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//include/rssfuncs.php
+--- Tiny-Tiny-RSS-1.7.8/include/rssfuncs.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//include/rssfuncs.php	2013-04-22 15:35:24.462313200 -0700
+@@ -327,11 +327,11 @@
+ 		$pluginhost->set_debug($debug_enabled);
+ 		$user_plugins = get_pref($link, "_ENABLED_PLUGINS", $owner_uid);
+ 
+-		$pluginhost->load(PLUGINS, $pluginhost::KIND_ALL);
+-		$pluginhost->load($user_plugins, $pluginhost::KIND_USER, $owner_uid);
++		$pluginhost->load(PLUGINS, PluginHost::KIND_ALL);
++		$pluginhost->load($user_plugins, PluginHost::KIND_USER, $owner_uid);
+ 		$pluginhost->load_data();
+ 
+-		foreach ($pluginhost->get_hooks($pluginhost::HOOK_FEED_FETCHED) as $plugin) {
++		foreach ($pluginhost->get_hooks(PluginHost::HOOK_FEED_FETCHED) as $plugin) {
+ 			$feed_data = $plugin->hook_feed_fetched($feed_data);
+ 		}
+ 
+@@ -368,7 +368,7 @@
+ 			}
+ 
+ 			// We use local pluginhost here because we need to load different per-user feed plugins
+-			$pluginhost->run_hooks($pluginhost::HOOK_FEED_PARSED, "hook_feed_parsed", $rss);
++			$pluginhost->run_hooks(PluginHost::HOOK_FEED_PARSED, "hook_feed_parsed", $rss);
+ 
+ 			if ($debug_enabled) {
+ 				_debug("update_rss_feed: processing feed data...");
+@@ -639,7 +639,7 @@
+ 					"author" => $entry_author,
+ 					"stored" => $stored_article);
+ 
+-				foreach ($pluginhost->get_hooks($pluginhost::HOOK_ARTICLE_FILTER) as $plugin) {
++				foreach ($pluginhost->get_hooks(PluginHost::HOOK_ARTICLE_FILTER) as $plugin) {
+ 					$article = $plugin->hook_article_filter($article);
+ 				}
+ 
+diff -u -r Tiny-Tiny-RSS-1.7.8/include/sanity_check.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//include/sanity_check.php
+--- Tiny-Tiny-RSS-1.7.8/include/sanity_check.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//include/sanity_check.php	2013-04-22 14:56:05.223852000 -0700
+@@ -43,9 +43,13 @@
+ 				array_push($errors, "Please don't run this script as root.");
+ 			}
+ 
+-			if (version_compare(PHP_VERSION, '5.3.0', '<')) {
++/*			if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+ 				array_push($errors, "PHP version 5.3.0 or newer required.");
+ 			}
++*/			
++			if (version_compare(PHP_VERSION, '5.2.0', '<')) {
++				array_push($errors, "PHP version 5.2.0 or newer required.");
++			}
+ 
+ 			if (CONFIG_VERSION != EXPECTED_CONFIG_VERSION) {
+ 				array_push($errors, "Configuration file (config.php) has incorrect version. Update it with new options from config.php-dist and set CONFIG_VERSION to the correct value.");
+@@ -102,9 +106,10 @@
+ 				array_push($errors, "LOCK_DIRECTORY defined in config.php is not writable (chmod -R 777 ".LOCK_DIRECTORY.").\n");
+ 			}
+ 
+-			if (ini_get("open_basedir")) {
++/*			if (ini_get("open_basedir")) {
+ 				array_push($errors, "PHP configuration option open_basedir is not supported. Please disable this in PHP settings file (php.ini).");
+ 			}
++*/			
+ 
+ 			if (!function_exists("curl_init") && !ini_get("allow_url_fopen")) {
+ 				array_push($errors, "PHP configuration option allow_url_fopen is disabled, and CURL functions are not present. Either enable allow_url_fopen or install PHP extension for CURL.");
+diff -u -r Tiny-Tiny-RSS-1.7.8/index.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//index.php
+--- Tiny-Tiny-RSS-1.7.8/index.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//index.php	2013-04-25 14:45:36.788484000 -0700
+@@ -9,12 +9,18 @@
+ 		exit;
+ 	}
+ 
++	/*
+ 	// we need a separate check here because functions.php might get parsed
+ 	// incorrectly before 5.3 because of :: syntax.
+ 	if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+ 		print "<b>Fatal Error</b>: PHP version 5.3.0 or newer required.\n";
+ 		exit;
+ 	}
++	*/
++	if (version_compare(PHP_VERSION, '5.2.0', '<')) {
++		print "<b>Fatal Error</b>: PHP version 5.2.0 or newer required.\n";
++		exit;
++	}
+ 
+ 	set_include_path(dirname(__FILE__) ."/include" . PATH_SEPARATOR .
+ 		get_include_path());
+@@ -111,7 +117,8 @@
+ 
+ 		foreach ($pluginhost->get_plugins() as $n => $p) {
+ 			if (method_exists($p, "get_js")) {
+-				echo JShrink\Minifier::minify($p->get_js());
++				echo Minifier::minify($p->get_js());
++				echo $p->get_js();
+ 			}
+ 		}
+ 
+@@ -208,7 +215,8 @@
+ 
+ 			<?php
+ 				global $pluginhost;
+-				foreach ($pluginhost->get_hooks($pluginhost::HOOK_TOOLBAR_BUTTON) as $p) {
++				/*foreach ($pluginhost->get_hooks($pluginhost::HOOK_TOOLBAR_BUTTON) as $p) {*/
++				foreach ($pluginhost->get_hooks(PluginHost::HOOK_TOOLBAR_BUTTON) as $p) {
+ 					 echo $p->hook_toolbar_button();
+ 				}
+ 			?>
+@@ -251,7 +259,8 @@
+ 					<div dojoType="dijit.MenuItem" onclick="quickMenuGo('qmcHKhelp')"><?php echo __('Keyboard shortcuts help') ?></div>
+ 
+ 					<?php
+-						foreach ($pluginhost->get_hooks($pluginhost::HOOK_ACTION_ITEM) as $p) {
++						/* foreach ($pluginhost->get_hooks($pluginhost::HOOK_ACTION_ITEM) as $p) { */
++						foreach ($pluginhost->get_hooks(PluginHost::HOOK_ACTION_ITEM) as $p) {
+ 						 echo $p->hook_action_item();
+ 						}
+ 					?>
+diff -u -r Tiny-Tiny-RSS-1.7.8/install/index.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//install/index.php
+--- Tiny-Tiny-RSS-1.7.8/install/index.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//install/index.php	2013-04-24 13:41:03.684508600 -0700
+@@ -13,13 +13,18 @@
+ 	function sanity_check($db_type) {
+ 		$errors = array();
+ 
+-		if (version_compare(PHP_VERSION, '5.3.0', '<')) {
++/*		if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+ 			array_push($errors, "PHP version 5.3.0 or newer required.");
+ 		}
++*/
++		if (version_compare(PHP_VERSION, '5.2.0', '<')) {
++			array_push($errors, "PHP version 5.2.0 or newer required.");
++		}
+ 
+-		if (ini_get("open_basedir")) {
++/*		if (ini_get("open_basedir")) {
+ 			array_push($errors, "PHP configuration option open_basedir is not supported. Please disable this in PHP settings file (php.ini).");
+ 		}
++		*/
+ 
+ 		if (!function_exists("curl_init") && !ini_get("allow_url_fopen")) {
+ 			array_push($errors, "PHP configuration option allow_url_fopen is disabled, and CURL functions are not present. Either enable allow_url_fopen or install PHP extension for CURL.");
+diff -u -r Tiny-Tiny-RSS-1.7.8/lib/jshrink/Minifier.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//lib/jshrink/Minifier.php
+--- Tiny-Tiny-RSS-1.7.8/lib/jshrink/Minifier.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//lib/jshrink/Minifier.php	2013-04-25 14:49:06.716203300 -0700
+@@ -42,7 +42,8 @@
+  * @version    Release: 0.5.1
+  */
+ 
+- namespace JShrink;
++/* namespace JShrink; 
++*/
+ 
+ /**
+  * Minifier
+@@ -355,7 +356,7 @@
+ 				}
+ 
+ 				if($char === false)
+-					throw new \RuntimeException('Stray comment. ' . $this->index);
++					throw new RuntimeException('Stray comment. ' . $this->index);
+ 
+ 				// if we're here c is part of the comment and therefore tossed
+ 				if(isset($this->c))
+@@ -406,7 +407,7 @@
+ 						break 2;
+ 
+ 					case "\n":
+-						throw new \RuntimeException('Unclosed string. ' . $this->index);
++						throw new RuntimeException('Unclosed string. ' . $this->index);
+ 						break;
+ 
+ 					case '\\':
+@@ -437,7 +438,7 @@
+ 			}
+ 
+ 			if($this->a == "\n")
+-				throw new \RuntimeException('Stray regex pattern. ' . $this->index);
++				throw new RuntimeException('Stray regex pattern. ' . $this->index);
+ 
+ 			echo $this->a;
+ 		}
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/af_buttersafe/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_buttersafe/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/af_buttersafe/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_buttersafe/init.php	2013-04-25 11:38:28.938270800 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/af_explosm/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_explosm/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/af_explosm/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_explosm/init.php	2013-04-25 11:38:28.943270800 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/af_gocomics/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_gocomics/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/af_gocomics/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_gocomics/init.php	2013-04-25 11:38:28.963270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/af_pennyarcade/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_pennyarcade/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/af_pennyarcade/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_pennyarcade/init.php	2013-04-25 11:38:28.968270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/af_redditimgur/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_redditimgur/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/af_redditimgur/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_redditimgur/init.php	2013-04-25 11:38:28.968270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/af_unburn/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_unburn/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/af_unburn/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/af_unburn/init.php	2013-04-25 11:38:28.973270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/auth_imap/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_imap/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/auth_imap/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_imap/init.php	2013-04-25 11:38:28.973270900 -0700
+@@ -25,7 +25,7 @@
+ 		$this->host = $host;
+ 		$this->base = new Auth_Base($this->link);
+ 
+-		$host->add_hook($host::HOOK_AUTH_USER, $this);
++		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
+ 	}
+ 
+ 	function authenticate($login, $password) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/auth_internal/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_internal/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/auth_internal/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_internal/init.php	2013-04-24 13:32:17.777115000 -0700
+@@ -15,14 +15,19 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_AUTH_USER, $this);
++		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
++		
++		error_log("Hook added");
+ 	}
+ 
+ 	function authenticate($login, $password) {
+-
++		error_log("Authenticating '$login' with '$password'");
++	
+ 		$pwd_hash1 = encrypt_password($password);
+ 		$pwd_hash2 = encrypt_password($password, $login);
+ 		$login = db_escape_string($this->link, $login);
++		
++		/*
+ 		$otp = db_escape_string($this->link, $_REQUEST["otp"]);
+ 
+ 		if (get_schema_version($this->link) > 96) {
+@@ -73,7 +78,8 @@
+ 				}
+ 			}
+ 		}
+-
++		*/
++		
+ 		if (get_schema_version($this->link) > 87) {
+ 
+ 			$result = db_query($this->link, "SELECT salt FROM ttrss_users WHERE
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/auth_ldap/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_ldap/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/auth_ldap/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_ldap/init.php	2013-04-25 11:38:28.978270900 -0700
+@@ -51,7 +51,7 @@
+ 		$this->host = $host;
+ 		$this->base = new Auth_Base($this->link);
+ 
+-		$host->add_hook($host::HOOK_AUTH_USER, $this);
++		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
+ 	}
+ 	
+ 	private function _log($msg) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/auth_radius/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_radius/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/auth_radius/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_radius/init.php	2013-04-25 11:38:28.978270900 -0700
+@@ -36,7 +36,7 @@
+ 		$this->base = new Auth_Base($this->link);
+ 		$this->debug = FALSE;
+ 
+-		$host->add_hook($host::HOOK_AUTH_USER, $this);
++		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
+ 	}
+ 
+ 	private function _log($msg) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/auth_remote/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_remote/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/auth_remote/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/auth_remote/init.php	2013-04-22 15:14:26.881599600 -0700
+@@ -17,7 +17,7 @@
+ 		$this->host = $host;
+ 		$this->base = new Auth_Base($this->link);
+ 
+-		$host->add_hook($host::HOOK_AUTH_USER, $this);
++		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
+ 	}
+ 
+ 	function get_login_by_ssl_certificate() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/bookmarklets/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/bookmarklets/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/bookmarklets/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/bookmarklets/init.php	2013-04-25 11:38:28.983270900 -0700
+@@ -13,7 +13,7 @@
+     $this->link = $host->get_link();
+     $this->host = $host;
+ 
+-    $host->add_hook($host::HOOK_PREFS_TAB, $this);
++    $host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+   }
+ 
+   function hook_prefs_tab($args) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/close_button/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/close_button/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/close_button/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/close_button/init.php	2013-04-25 11:38:28.983270900 -0700
+@@ -7,7 +7,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function about() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/embed_original/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/embed_original/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/embed_original/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/embed_original/init.php	2013-04-25 11:38:28.988270900 -0700
+@@ -7,7 +7,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function about() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/example/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/example/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/example/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/example/init.php	2013-04-25 11:38:28.988270900 -0700
+@@ -18,7 +18,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 	}
+ 
+ 	function save() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/example_article/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/example_article/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/example_article/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/example_article/init.php	2013-04-25 11:38:28.993270900 -0700
+@@ -15,7 +15,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this);
++		$host->add_hook(PluginHost::HOOK_RENDER_ARTICLE, $this);
+ 	}
+ 
+ 	function get_prefs_js() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/example_feed/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/example_feed/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/example_feed/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/example_feed/init.php	2013-04-25 11:38:28.998270900 -0700
+@@ -18,7 +18,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_FEED_PARSED, $this);
++		$host->add_hook(PluginHost::HOOK_FEED_PARSED, $this);
+ 	}
+ 
+ 	function hook_feed_parsed($feed) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/googlereaderimport/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/googlereaderimport/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/googlereaderimport/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/googlereaderimport/init.php	2013-04-25 11:38:28.998270900 -0700
+@@ -21,7 +21,7 @@
+ 			"import data in Google Reader JSON format",
+ 			$this, ":", "FILE");
+ 
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 	}
+ 
+ 	function greader_import($args) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/googlereaderkeys/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/googlereaderkeys/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/googlereaderkeys/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/googlereaderkeys/init.php	2013-04-25 11:38:29.003270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_HOTKEY_MAP, $this);
++		$host->add_hook(PluginHost::HOOK_HOTKEY_MAP, $this);
+ 	}
+ 
+ 	function hook_hotkey_map($hotkeys) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/import_export/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/import_export/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/import_export/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/import_export/init.php	2013-04-25 11:38:29.003270900 -0700
+@@ -8,7 +8,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 		$host->add_command("xml-import", "import articles from XML", $this, ":", "FILE");
+ 	}
+ 
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/instances/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/instances/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/instances/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/instances/init.php	2013-04-22 15:46:53.398581900 -0700
+@@ -21,11 +21,11 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_PREFS_TABS, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TABS, $this);
+ 		$host->add_handler("pref-instances", "*", $this);
+ 		$host->add_handler("public", "fbexport", $this);
+ 		$host->add_command("get-feeds", "receive popular feeds from linked instances", $this);
+-		$host->add_hook($host::HOOK_UPDATE_TASK, $this);
++		$host->add_hook(PluginHost::HOOK_UPDATE_TASK, $this);
+ 	}
+ 
+ 	function hook_update_task($args) {
+@@ -355,7 +355,7 @@
+ 		print "</div>"; #pane
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TAB,
++		$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TAB,
+ 			"hook_prefs_tab", "prefInstances");
+ 
+ 		print "</div>"; #container
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/mail/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/mail/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/mail/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/mail/init.php	2013-04-25 11:38:29.008270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/mailto/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/mailto/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/mailto/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/mailto/init.php	2013-04-25 11:38:29.013270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/note/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/note/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/note/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/note/init.php	2013-04-22 15:14:14.683572000 -0700
+@@ -13,7 +13,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/nsfw/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/nsfw/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/nsfw/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/nsfw/init.php	2013-04-25 11:38:29.013270900 -0700
+@@ -15,9 +15,9 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this);
+-		$host->add_hook($host::HOOK_RENDER_ARTICLE_CDM, $this);
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_RENDER_ARTICLE, $this);
++		$host->add_hook(PluginHost::HOOK_RENDER_ARTICLE_CDM, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 
+ 	}
+ 
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/share/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/share/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/share/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/share/init.php	2013-04-25 11:38:29.018270900 -0700
+@@ -13,7 +13,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/swap_jk/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/swap_jk/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/swap_jk/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/swap_jk/init.php	2013-04-25 11:38:29.018270900 -0700
+@@ -14,7 +14,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_HOTKEY_MAP, $this);
++		$host->add_hook(PluginHost::HOOK_HOTKEY_MAP, $this);
+ 	}
+ 
+ 	function hook_hotkey_map($hotkeys) {
+diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/updater/init.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/updater/init.php
+--- Tiny-Tiny-RSS-1.7.8/plugins/updater/init.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//plugins/updater/init.php	2013-04-22 15:10:30.677109100 -0700
+@@ -15,7 +15,7 @@
+ 		$this->link = $host->get_link();
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 
+ 		$host->add_command("update-self",
+ 			"update tt-rss installation to latest version",
+diff -u -r Tiny-Tiny-RSS-1.7.8/prefs.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//prefs.php
+--- Tiny-Tiny-RSS-1.7.8/prefs.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//prefs.php	2013-04-25 14:50:08.743453200 -0700
+@@ -68,12 +68,12 @@
+ 	<script type="text/javascript">
+ 	<?php
+ 		require 'lib/jshrink/Minifier.php';
+-
+ 		global $pluginhost;
+ 
+ 		foreach ($pluginhost->get_plugins() as $n => $p) {
+ 			if (method_exists($p, "get_prefs_js")) {
+-				echo JShrink\Minifier::minify($p->get_prefs_js());
++				echo Minifier::minify($p->get_prefs_js());
++				echo $p->get_prefs_js();
+ 			}
+ 		}
+ 
+@@ -134,7 +134,7 @@
+ 		title="<?php echo __('Users') ?>"></div>
+ <?php } ?>
+ <?php
+-	$pluginhost->run_hooks($pluginhost::HOOK_PREFS_TABS,
++	$pluginhost->run_hooks(PluginHost::HOOK_PREFS_TABS,
+ 		"hook_prefs_tabs", false);
+ ?>
+ </div>
+diff -u -r Tiny-Tiny-RSS-1.7.8/update_daemon2.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//update_daemon2.php
+--- Tiny-Tiny-RSS-1.7.8/update_daemon2.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//update_daemon2.php	2013-04-22 15:43:07.547820500 -0700
+@@ -278,7 +278,7 @@
+ 						_debug("Cleaned $rc cached tags.");
+ 
+ 						global $pluginhost;
+-						$pluginhost->run_hooks($pluginhost::HOOK_UPDATE_TASK, "hook_update_task", $op);
++						$pluginhost->run_hooks(PluginHost::HOOK_UPDATE_TASK, "hook_update_task", $op);
+ 					}
+ 
+ 					_debug("Elapsed time: " . (time() - $start_timestamp) . " second(s)");
+diff -u -r Tiny-Tiny-RSS-1.7.8/update.php Tiny-Tiny-RSS-1.7.8 - patched for old PHP//update.php
+--- Tiny-Tiny-RSS-1.7.8/update.php	2013-04-04 01:21:37.000000000 -0700
++++ Tiny-Tiny-RSS-1.7.8 - patched for old PHP//update.php	2013-04-22 15:42:39.430700600 -0700
+@@ -135,7 +135,7 @@
+ 		_debug("Cleaned $rc cached tags.");
+ 
+ 		global $pluginhost;
+-		$pluginhost->run_hooks($pluginhost::HOOK_UPDATE_TASK, "hook_update_task", $op);
++		$pluginhost->run_hooks(PluginHost::HOOK_UPDATE_TASK, "hook_update_task", $op);
+ 	}
+ 
+ 	if (isset($options["feedbrowser"])) {
+@@ -174,7 +174,7 @@
+ 			_debug("Cleaned $rc cached tags.");
+ 
+ 			global $pluginhost;
+-			$pluginhost->run_hooks($pluginhost::HOOK_UPDATE_TASK, "hook_update_task", $op);
++			$pluginhost->run_hooks(PluginHost::HOOK_UPDATE_TASK, "hook_update_task", $op);
+ 		}
+ 
+ 	}
