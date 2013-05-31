@@ -318,6 +318,7 @@ class Pref_Prefs extends Handler_Protected {
 
 			print "</form>";
 
+/*			
 			if ($_SESSION["auth_module"] == "auth_internal") {
 
 				print "<h2>" . __("One time passwords / Authenticator") . "</h2>";
@@ -430,6 +431,7 @@ class Pref_Prefs extends Handler_Protected {
 				}
 
 			}
+*/			
 		}
 
 		PluginHost::getInstance()->run_hooks(PluginHost::HOOK_PREFS_TAB_SECTION,
@@ -746,7 +748,7 @@ class Pref_Prefs extends Handler_Protected {
 		$user_enabled = array_map("trim", explode(",", get_pref("_ENABLED_PLUGINS")));
 
 		$tmppluginhost = new PluginHost();
-		$tmppluginhost->load_all($tmppluginhost::KIND_ALL, $_SESSION["uid"]);
+		$tmppluginhost->load_all(PluginHost::KIND_ALL, $_SESSION["uid"]);
 		$tmppluginhost->load_data(true);
 
 		foreach ($tmppluginhost->get_plugins() as $name => $plugin) {
@@ -866,6 +868,7 @@ class Pref_Prefs extends Handler_Protected {
 		$_SESSION["prefs_show_advanced"] = !$_SESSION["prefs_show_advanced"];
 	}
 
+/*	
 	function otpqrcode() {
 		require_once "lib/otphp/vendor/base32.php";
 		require_once "lib/otphp/lib/otp.php";
@@ -941,7 +944,8 @@ class Pref_Prefs extends Handler_Protected {
 		}
 
 	}
-
+*/
+	
 	function setplugins() {
 		if (is_array($_REQUEST["plugins"]))
 			$plugins = join(",", $_REQUEST["plugins"]);

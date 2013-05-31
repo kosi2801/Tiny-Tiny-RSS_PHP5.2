@@ -144,19 +144,19 @@ class PluginHost {
 					$this->last_registered = $class;
 
 					switch ($kind) {
-					case $this::KIND_SYSTEM:
+					case PluginHost::KIND_SYSTEM:
 						if ($this->is_system($plugin)) {
 							$plugin->init($this);
 							$this->register_plugin($class, $plugin);
 						}
 						break;
-					case $this::KIND_USER:
+					case PluginHost::KIND_USER:
 						if (!$this->is_system($plugin)) {
 							$plugin->init($this);
 							$this->register_plugin($class, $plugin);
 						}
 						break;
-					case $this::KIND_ALL:
+					case PluginHost::KIND_ALL:
 						$plugin->init($this);
 						$this->register_plugin($class, $plugin);
 						break;

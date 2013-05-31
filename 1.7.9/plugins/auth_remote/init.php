@@ -15,7 +15,7 @@ class Auth_Remote extends Plugin implements IAuthModule {
 		$this->host = $host;
 		$this->base = new Auth_Base();
 
-		$host->add_hook($host::HOOK_AUTH_USER, $this);
+		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
 	}
 
 	function get_login_by_ssl_certificate() {

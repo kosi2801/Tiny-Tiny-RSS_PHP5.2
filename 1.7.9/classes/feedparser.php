@@ -40,13 +40,13 @@ class FeedParser {
 		if ($root) {
 			switch (mb_strtolower($root->tagName)) {
 			case "rdf:rdf":
-				$this->type = $this::FEED_RDF;
+				$this->type = FeedParser::FEED_RDF;
 				break;
 			case "channel":
-				$this->type = $this::FEED_RSS;
+				$this->type = FeedParser::FEED_RSS;
 				break;
 			case "feed":
-				$this->type = $this::FEED_ATOM;
+				$this->type = FeedParser::FEED_ATOM;
 				break;
 			default:
 				$this->error = "Unknown/unsupported feed type";
@@ -54,7 +54,7 @@ class FeedParser {
 			}
 
 			switch ($this->type) {
-			case $this::FEED_ATOM:
+			case FeedParser::FEED_ATOM:
 
 				$title = $xpath->query("//atom:feed/atom:title")->item(0);
 
@@ -75,7 +75,7 @@ class FeedParser {
 				}
 
 				break;
-			case $this::FEED_RSS:
+			case FeedParser::FEED_RSS:
 
 				$title = $xpath->query("//channel/title")->item(0);
 
@@ -96,7 +96,7 @@ class FeedParser {
 				}
 
 				break;
-			case $this::FEED_RDF:
+			case FeedParser::FEED_RDF:
 				$xpath->registerNamespace('rssfake', 'http://purl.org/rss/1.0/');
 
 				$title = $xpath->query("//rssfake:channel/rssfake:title")->item(0);
@@ -156,7 +156,7 @@ class FeedParser {
 		$rv = array();
 
 		switch ($this->type) {
-		case $this::FEED_ATOM:
+		case FeedParser::FEED_ATOM:
 			$links = $this->xpath->query("//atom:feed/atom:link");
 
 			foreach ($links as $link) {
@@ -165,7 +165,7 @@ class FeedParser {
 				}
 			}
 			break;
-		case $this::FEED_RSS:
+		case FeedParser::FEED_RSS:
 			$links = $this->xpath->query("//channel/link");
 			foreach ($links as $link) {
 				if (!$rel || $link->hasAttribute('rel') && $link->getAttribute('rel') == $rel) {

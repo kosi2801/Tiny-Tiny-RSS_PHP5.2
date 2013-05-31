@@ -42,7 +42,7 @@
  * @version    Release: 0.5.1
  */
 
- namespace JShrink;
+/* namespace JShrink; */
 
 /**
  * Minifier
@@ -355,7 +355,8 @@ class Minifier
 				}
 
 				if($char === false)
-					throw new \RuntimeException('Stray comment. ' . $this->index);
+					throw new RuntimeException('Stray comment. ' . $this->index);
+/*					throw new \RuntimeException('Stray comment. ' . $this->index); */
 
 				// if we're here c is part of the comment and therefore tossed
 				if(isset($this->c))
@@ -406,7 +407,8 @@ class Minifier
 						break 2;
 
 					case "\n":
-						throw new \RuntimeException('Unclosed string. ' . $this->index);
+/*						throw new \RuntimeException('Unclosed string. ' . $this->index); */
+						throw new RuntimeException('Unclosed string. ' . $this->index);
 						break;
 
 					case '\\':
@@ -437,7 +439,8 @@ class Minifier
 			}
 
 			if($this->a == "\n")
-				throw new \RuntimeException('Stray regex pattern. ' . $this->index);
+				throw new RuntimeException('Stray regex pattern. ' . $this->index);
+/*				throw new \RuntimeException('Stray regex pattern. ' . $this->index); */
 
 			echo $this->a;
 		}

@@ -11,7 +11,7 @@ class Note extends Plugin {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
+		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
 	}
 
 	function get_js() {

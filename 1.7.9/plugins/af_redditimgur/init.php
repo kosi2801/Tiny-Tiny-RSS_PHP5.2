@@ -11,7 +11,7 @@ class Af_RedditImgur extends Plugin {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
+		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
 	}
 
 	function hook_article_filter($article) {

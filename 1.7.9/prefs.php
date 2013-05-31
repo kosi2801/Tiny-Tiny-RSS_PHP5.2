@@ -68,7 +68,8 @@
 
 		foreach (PluginHost::getInstance()->get_plugins() as $n => $p) {
 			if (method_exists($p, "get_prefs_js")) {
-				echo JShrink\Minifier::minify($p->get_prefs_js());
+/*				echo JShrink\Minifier::minify($p->get_prefs_js()); */
+				echo Minifier::minify($p->get_prefs_js());
 			}
 		}
 

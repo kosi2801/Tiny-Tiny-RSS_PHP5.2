@@ -12,9 +12,9 @@ class NSFW extends Plugin {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this);
-		$host->add_hook($host::HOOK_RENDER_ARTICLE_CDM, $this);
-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
+		$host->add_hook(PluginHost::HOOK_RENDER_ARTICLE, $this);
+		$host->add_hook(PluginHost::HOOK_RENDER_ARTICLE_CDM, $this);
+		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
 
 	}
 

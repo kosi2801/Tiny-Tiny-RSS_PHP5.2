@@ -11,11 +11,16 @@
 
 	// we need a separate check here because functions.php might get parsed
 	// incorrectly before 5.3 because of :: syntax.
-	if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+/*	if (version_compare(PHP_VERSION, '5.3.0', '<')) {
 		print "<b>Fatal Error</b>: PHP version 5.3.0 or newer required.\n";
+		exit;
+	} */
+	if (version_compare(PHP_VERSION, '5.2.0', '<')) {
+		print "<b>Fatal Error</b>: PHP version 5.2.0 or newer required.\n";
 		exit;
 	}
 
+	
 	set_include_path(dirname(__FILE__) ."/include" . PATH_SEPARATOR .
 		get_include_path());
 
@@ -104,7 +109,8 @@
 
 		foreach (PluginHost::getInstance()->get_plugins() as $n => $p) {
 			if (method_exists($p, "get_js")) {
-				echo JShrink\Minifier::minify($p->get_js());
+/*				echo JShrink\Minifier::minify($p->get_js()); */
+				echo Minifier::minify($p->get_js());
 			}
 		}
 

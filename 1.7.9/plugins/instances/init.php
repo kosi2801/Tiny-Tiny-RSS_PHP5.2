@@ -18,11 +18,11 @@ class Instances extends Plugin implements IHandler {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_PREFS_TABS, $this);
+		$host->add_hook(PluginHost::HOOK_PREFS_TABS, $this);
 		$host->add_handler("pref-instances", "*", $this);
 		$host->add_handler("public", "fbexport", $this);
 		$host->add_command("get-feeds", "receive popular feeds from linked instances", $this);
-		$host->add_hook($host::HOOK_UPDATE_TASK, $this);
+		$host->add_hook(PluginHost::HOOK_UPDATE_TASK, $this);
 	}
 
 	function hook_update_task($args) {

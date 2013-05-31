@@ -11,7 +11,7 @@ class GoogleReaderKeys extends Plugin {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_HOTKEY_MAP, $this);
+		$host->add_hook(PluginHost::HOOK_HOTKEY_MAP, $this);
 	}
 
 	function hook_hotkey_map($hotkeys) {

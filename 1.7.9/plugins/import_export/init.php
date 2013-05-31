@@ -5,7 +5,7 @@ class Import_Export extends Plugin implements IHandler {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
+		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
 		$host->add_command("xml-import", "import articles from XML", $this, ":", "FILE");
 	}
 

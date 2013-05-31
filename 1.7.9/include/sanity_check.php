@@ -43,10 +43,14 @@
 				array_push($errors, "Please don't run this script as root.");
 			}
 
-			if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+/*			if (version_compare(PHP_VERSION, '5.3.0', '<')) {
 				array_push($errors, "PHP version 5.3.0 or newer required.");
-			}
+			} */
 
+			if (version_compare(PHP_VERSION, '5.2.0', '<')) {
+				array_push($errors, "PHP version 5.2.0 or newer required.");
+			}
+			
 			if (CONFIG_VERSION != EXPECTED_CONFIG_VERSION) {
 				array_push($errors, "Configuration file (config.php) has incorrect version. Update it with new options from config.php-dist and set CONFIG_VERSION to the correct value.");
 			}

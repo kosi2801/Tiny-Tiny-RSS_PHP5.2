@@ -1,0 +1,1651 @@
+ 1.7.9/classes/feedparser.php              | 360 +++++++--------
+ 1.7.9/classes/pluginhost.php              |   6 +-
+ 1.7.9/classes/pref/prefs.php              |   8 +-
+ 1.7.9/include/functions.php               |   3 +-
+ 1.7.9/include/sanity_check.php            |   8 +-
+ 1.7.9/index.php                           |  10 +-
+ 1.7.9/install/index.php                   |   6 +-
+ 1.7.9/lib/jshrink/Minifier.php            |  11 +-
+ 1.7.9/plugins/af_buttersafe/init.php      |   2 +-
+ 1.7.9/plugins/af_explosm/init.php         |   2 +-
+ 1.7.9/plugins/af_gocomics/init.php        |   2 +-
+ 1.7.9/plugins/af_pennyarcade/init.php     |   2 +-
+ 1.7.9/plugins/af_redditimgur/init.php     |   2 +-
+ 1.7.9/plugins/af_unburn/init.php          |   2 +-
+ 1.7.9/plugins/auth_internal/init.php      |   4 +-
+ 1.7.9/plugins/auth_remote/init.php        |   2 +-
+ 1.7.9/plugins/bookmarklets/init.php       |   2 +-
+ 1.7.9/plugins/close_button/init.php       |   2 +-
+ 1.7.9/plugins/embed_original/init.php     |   2 +-
+ 1.7.9/plugins/googlereaderimport/init.php |   2 +-
+ 1.7.9/plugins/googlereaderkeys/init.php   |   2 +-
+ 1.7.9/plugins/import_export/init.php      |   2 +-
+ 1.7.9/plugins/instances/init.php          |   4 +-
+ 1.7.9/plugins/mail/init.php               |   2 +-
+ 1.7.9/plugins/mailto/init.php             |   2 +-
+ 1.7.9/plugins/mark_button/init.php        |   2 +-
+ 1.7.9/plugins/note/init.php               |   2 +-
+ 1.7.9/plugins/nsfw/init.php               |   6 +-
+ 1.7.9/plugins/share/init.php              |   2 +-
+ 1.7.9/plugins/swap_jk/init.php            |   2 +-
+ 1.7.9/plugins/updater/init.php            |   2 +-
+ 1.7.9/prefs.php                           |   3 +-
+ 1.7.9/update.php                          | 706 +++++++++++++++---------------
+ 33 files changed, 600 insertions(+), 575 deletions(-)
+
+diff --git a/1.7.9/classes/feedparser.php b/1.7.9/classes/feedparser.php
+index d60db8a..db6c485 100644
+--- a/1.7.9/classes/feedparser.php
++++ b/1.7.9/classes/feedparser.php
+@@ -1,180 +1,180 @@
+-<?php
+-class FeedParser {
+-	private $doc;
+-	private $error;
+-	private $items;
+-	private $link;
+-	private $title;
+-	private $type;
+-	private $xpath;
+-
+-	const FEED_RDF = 0;
+-	const FEED_RSS = 1;
+-	const FEED_ATOM = 2;
+-
+-	function __construct($data) {
+-		libxml_use_internal_errors(true);
+-		libxml_clear_errors();
+-		$this->doc = new DOMDocument();
+-		$this->doc->loadXML($data);
+-		$this->error = $this->format_error(libxml_get_last_error());
+-		libxml_clear_errors();
+-
+-		$this->items = array();
+-	}
+-
+-	function init() {
+-		$root = $this->doc->firstChild;
+-		$xpath = new DOMXPath($this->doc);
+-		$xpath->registerNamespace('atom', 'http://www.w3.org/2005/Atom');
+-		$xpath->registerNamespace('media', 'http://search.yahoo.com/mrss/');
+-		$xpath->registerNamespace('rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#');
+-		$xpath->registerNamespace('slash', 'http://purl.org/rss/1.0/modules/slash/');
+-		$xpath->registerNamespace('dc', 'http://purl.org/dc/elements/1.1/');
+-		$xpath->registerNamespace('content', 'http://purl.org/rss/1.0/modules/content/');
+-
+-		$this->xpath = $xpath;
+-
+-		$root = $xpath->query("(//atom:feed|//channel|//rdf:rdf|//rdf:RDF)")->item(0);
+-
+-		if ($root) {
+-			switch (mb_strtolower($root->tagName)) {
+-			case "rdf:rdf":
+-				$this->type = $this::FEED_RDF;
+-				break;
+-			case "channel":
+-				$this->type = $this::FEED_RSS;
+-				break;
+-			case "feed":
+-				$this->type = $this::FEED_ATOM;
+-				break;
+-			default:
+-				$this->error = "Unknown/unsupported feed type";
+-				return;
+-			}
+-
+-			switch ($this->type) {
+-			case $this::FEED_ATOM:
+-
+-				$title = $xpath->query("//atom:feed/atom:title")->item(0);
+-
+-				if ($title) {
+-					$this->title = $title->nodeValue;
+-				}
+-
+-				$link = $xpath->query("//atom:feed/atom:link[not(@rel)]")->item(0);
+-
+-				if ($link && $link->hasAttributes()) {
+-					$this->link = $link->getAttribute("href");
+-				}
+-
+-				$articles = $xpath->query("//atom:entry");
+-
+-				foreach ($articles as $article) {
+-					array_push($this->items, new FeedItem_Atom($article, $this->doc, $this->xpath));
+-				}
+-
+-				break;
+-			case $this::FEED_RSS:
+-
+-				$title = $xpath->query("//channel/title")->item(0);
+-
+-				if ($title) {
+-					$this->title = $title->nodeValue;
+-				}
+-
+-				$link = $xpath->query("//channel/link")->item(0);
+-
+-				if ($link && $link->hasAttributes()) {
+-					$this->link = $link->getAttribute("href");
+-				}
+-
+-				$articles = $xpath->query("//channel/item");
+-
+-				foreach ($articles as $article) {
+-					array_push($this->items, new FeedItem_RSS($article, $this->doc, $this->xpath));
+-				}
+-
+-				break;
+-			case $this::FEED_RDF:
+-				$xpath->registerNamespace('rssfake', 'http://purl.org/rss/1.0/');
+-
+-				$title = $xpath->query("//rssfake:channel/rssfake:title")->item(0);
+-
+-				if ($title) {
+-					$this->title = $title->nodeValue;
+-				}
+-
+-				$link = $xpath->query("//rssfake:channel/rssfake:link")->item(0);
+-
+-				if ($link) {
+-					$this->link = $link->nodeValue;
+-				}
+-
+-				$articles = $xpath->query("//rssfake:item");
+-
+-				foreach ($articles as $article) {
+-					array_push($this->items, new FeedItem_RSS($article, $this->doc, $this->xpath));
+-				}
+-
+-				break;
+-
+-			}
+-		} else {
+-			$this->error = "Unknown/unsupported feed type";
+-			return;
+-		}
+-	}
+-
+-	function format_error($error) {
+-		if ($error) {
+-			return sprintf("LibXML error %s at line %d (column %d): %s",
+-				$error->code, $error->line, $error->column,
+-				$error->message);
+-		} else {
+-			return "";
+-		}
+-	}
+-
+-	function error() {
+-		return $this->error;
+-	}
+-
+-	function get_link() {
+-		return $this->link;
+-	}
+-
+-	function get_title() {
+-		return $this->title;
+-	}
+-
+-	function get_items() {
+-		return $this->items;
+-	}
+-
+-	function get_links($rel) {
+-		$rv = array();
+-
+-		switch ($this->type) {
+-		case $this::FEED_ATOM:
+-			$links = $this->xpath->query("//atom:feed/atom:link");
+-
+-			foreach ($links as $link) {
+-				if (!$rel || $link->hasAttribute('rel') && $link->getAttribute('rel') == $rel) {
+-					array_push($rv, $link->getAttribute('href'));
+-				}
+-			}
+-			break;
+-		case $this::FEED_RSS:
+-			$links = $this->xpath->query("//channel/link");
+-			foreach ($links as $link) {
+-				if (!$rel || $link->hasAttribute('rel') && $link->getAttribute('rel') == $rel) {
+-					array_push($rv, $link->getAttribute('href'));
+-				}
+-			}
+-			break;
+-		}
+-
+-		return $rv;
+-	}
+-} ?>
++<?php
++class FeedParser {
++	private $doc;
++	private $error;
++	private $items;
++	private $link;
++	private $title;
++	private $type;
++	private $xpath;
++
++	const FEED_RDF = 0;
++	const FEED_RSS = 1;
++	const FEED_ATOM = 2;
++
++	function __construct($data) {
++		libxml_use_internal_errors(true);
++		libxml_clear_errors();
++		$this->doc = new DOMDocument();
++		$this->doc->loadXML($data);
++		$this->error = $this->format_error(libxml_get_last_error());
++		libxml_clear_errors();
++
++		$this->items = array();
++	}
++
++	function init() {
++		$root = $this->doc->firstChild;
++		$xpath = new DOMXPath($this->doc);
++		$xpath->registerNamespace('atom', 'http://www.w3.org/2005/Atom');
++		$xpath->registerNamespace('media', 'http://search.yahoo.com/mrss/');
++		$xpath->registerNamespace('rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#');
++		$xpath->registerNamespace('slash', 'http://purl.org/rss/1.0/modules/slash/');
++		$xpath->registerNamespace('dc', 'http://purl.org/dc/elements/1.1/');
++		$xpath->registerNamespace('content', 'http://purl.org/rss/1.0/modules/content/');
++
++		$this->xpath = $xpath;
++
++		$root = $xpath->query("(//atom:feed|//channel|//rdf:rdf|//rdf:RDF)")->item(0);
++
++		if ($root) {
++			switch (mb_strtolower($root->tagName)) {
++			case "rdf:rdf":
++				$this->type = FeedParser::FEED_RDF;
++				break;
++			case "channel":
++				$this->type = FeedParser::FEED_RSS;
++				break;
++			case "feed":
++				$this->type = FeedParser::FEED_ATOM;
++				break;
++			default:
++				$this->error = "Unknown/unsupported feed type";
++				return;
++			}
++
++			switch ($this->type) {
++			case FeedParser::FEED_ATOM:
++
++				$title = $xpath->query("//atom:feed/atom:title")->item(0);
++
++				if ($title) {
++					$this->title = $title->nodeValue;
++				}
++
++				$link = $xpath->query("//atom:feed/atom:link[not(@rel)]")->item(0);
++
++				if ($link && $link->hasAttributes()) {
++					$this->link = $link->getAttribute("href");
++				}
++
++				$articles = $xpath->query("//atom:entry");
++
++				foreach ($articles as $article) {
++					array_push($this->items, new FeedItem_Atom($article, $this->doc, $this->xpath));
++				}
++
++				break;
++			case FeedParser::FEED_RSS:
++
++				$title = $xpath->query("//channel/title")->item(0);
++
++				if ($title) {
++					$this->title = $title->nodeValue;
++				}
++
++				$link = $xpath->query("//channel/link")->item(0);
++
++				if ($link && $link->hasAttributes()) {
++					$this->link = $link->getAttribute("href");
++				}
++
++				$articles = $xpath->query("//channel/item");
++
++				foreach ($articles as $article) {
++					array_push($this->items, new FeedItem_RSS($article, $this->doc, $this->xpath));
++				}
++
++				break;
++			case FeedParser::FEED_RDF:
++				$xpath->registerNamespace('rssfake', 'http://purl.org/rss/1.0/');
++
++				$title = $xpath->query("//rssfake:channel/rssfake:title")->item(0);
++
++				if ($title) {
++					$this->title = $title->nodeValue;
++				}
++
++				$link = $xpath->query("//rssfake:channel/rssfake:link")->item(0);
++
++				if ($link) {
++					$this->link = $link->nodeValue;
++				}
++
++				$articles = $xpath->query("//rssfake:item");
++
++				foreach ($articles as $article) {
++					array_push($this->items, new FeedItem_RSS($article, $this->doc, $this->xpath));
++				}
++
++				break;
++
++			}
++		} else {
++			$this->error = "Unknown/unsupported feed type";
++			return;
++		}
++	}
++
++	function format_error($error) {
++		if ($error) {
++			return sprintf("LibXML error %s at line %d (column %d): %s",
++				$error->code, $error->line, $error->column,
++				$error->message);
++		} else {
++			return "";
++		}
++	}
++
++	function error() {
++		return $this->error;
++	}
++
++	function get_link() {
++		return $this->link;
++	}
++
++	function get_title() {
++		return $this->title;
++	}
++
++	function get_items() {
++		return $this->items;
++	}
++
++	function get_links($rel) {
++		$rv = array();
++
++		switch ($this->type) {
++		case FeedParser::FEED_ATOM:
++			$links = $this->xpath->query("//atom:feed/atom:link");
++
++			foreach ($links as $link) {
++				if (!$rel || $link->hasAttribute('rel') && $link->getAttribute('rel') == $rel) {
++					array_push($rv, $link->getAttribute('href'));
++				}
++			}
++			break;
++		case FeedParser::FEED_RSS:
++			$links = $this->xpath->query("//channel/link");
++			foreach ($links as $link) {
++				if (!$rel || $link->hasAttribute('rel') && $link->getAttribute('rel') == $rel) {
++					array_push($rv, $link->getAttribute('href'));
++				}
++			}
++			break;
++		}
++
++		return $rv;
++	}
++} ?>
+diff --git a/1.7.9/classes/pluginhost.php b/1.7.9/classes/pluginhost.php
+index bc5dc96..bf39863 100644
+--- a/1.7.9/classes/pluginhost.php
++++ b/1.7.9/classes/pluginhost.php
+@@ -144,19 +144,19 @@ class PluginHost {
+ 					$this->last_registered = $class;
+ 
+ 					switch ($kind) {
+-					case $this::KIND_SYSTEM:
++					case PluginHost::KIND_SYSTEM:
+ 						if ($this->is_system($plugin)) {
+ 							$plugin->init($this);
+ 							$this->register_plugin($class, $plugin);
+ 						}
+ 						break;
+-					case $this::KIND_USER:
++					case PluginHost::KIND_USER:
+ 						if (!$this->is_system($plugin)) {
+ 							$plugin->init($this);
+ 							$this->register_plugin($class, $plugin);
+ 						}
+ 						break;
+-					case $this::KIND_ALL:
++					case PluginHost::KIND_ALL:
+ 						$plugin->init($this);
+ 						$this->register_plugin($class, $plugin);
+ 						break;
+diff --git a/1.7.9/classes/pref/prefs.php b/1.7.9/classes/pref/prefs.php
+index 425d4b0..9ca43ab 100644
+--- a/1.7.9/classes/pref/prefs.php
++++ b/1.7.9/classes/pref/prefs.php
+@@ -318,6 +318,7 @@ class Pref_Prefs extends Handler_Protected {
+ 
+ 			print "</form>";
+ 
++/*			
+ 			if ($_SESSION["auth_module"] == "auth_internal") {
+ 
+ 				print "<h2>" . __("One time passwords / Authenticator") . "</h2>";
+@@ -430,6 +431,7 @@ class Pref_Prefs extends Handler_Protected {
+ 				}
+ 
+ 			}
++*/			
+ 		}
+ 
+ 		PluginHost::getInstance()->run_hooks(PluginHost::HOOK_PREFS_TAB_SECTION,
+@@ -746,7 +748,7 @@ class Pref_Prefs extends Handler_Protected {
+ 		$user_enabled = array_map("trim", explode(",", get_pref("_ENABLED_PLUGINS")));
+ 
+ 		$tmppluginhost = new PluginHost();
+-		$tmppluginhost->load_all($tmppluginhost::KIND_ALL, $_SESSION["uid"]);
++		$tmppluginhost->load_all(PluginHost::KIND_ALL, $_SESSION["uid"]);
+ 		$tmppluginhost->load_data(true);
+ 
+ 		foreach ($tmppluginhost->get_plugins() as $name => $plugin) {
+@@ -866,6 +868,7 @@ class Pref_Prefs extends Handler_Protected {
+ 		$_SESSION["prefs_show_advanced"] = !$_SESSION["prefs_show_advanced"];
+ 	}
+ 
++/*	
+ 	function otpqrcode() {
+ 		require_once "lib/otphp/vendor/base32.php";
+ 		require_once "lib/otphp/lib/otp.php";
+@@ -941,7 +944,8 @@ class Pref_Prefs extends Handler_Protected {
+ 		}
+ 
+ 	}
+-
++*/
++	
+ 	function setplugins() {
+ 		if (is_array($_REQUEST["plugins"]))
+ 			$plugins = join(",", $_REQUEST["plugins"]);
+diff --git a/1.7.9/include/functions.php b/1.7.9/include/functions.php
+index 48bb39d..f008456 100644
+--- a/1.7.9/include/functions.php
++++ b/1.7.9/include/functions.php
+@@ -4127,7 +4127,8 @@
+ 					$rv .= file_get_contents($cached_file);
+ 
+ 				} else {
+-					$minified = JShrink\Minifier::minify(file_get_contents("js/$js.js"));
++/*					$minified = JShrink\Minifier::minify(file_get_contents("js/$js.js")); */
++					$minified = Minifier::minify(file_get_contents("js/$js.js"));
+ 					file_put_contents($cached_file, $minified);
+ 					$rv .= $minified;
+ 				}
+diff --git a/1.7.9/include/sanity_check.php b/1.7.9/include/sanity_check.php
+index b2888b1..be7d0f7 100644
+--- a/1.7.9/include/sanity_check.php
++++ b/1.7.9/include/sanity_check.php
+@@ -43,10 +43,14 @@
+ 				array_push($errors, "Please don't run this script as root.");
+ 			}
+ 
+-			if (version_compare(PHP_VERSION, '5.3.0', '<')) {
++/*			if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+ 				array_push($errors, "PHP version 5.3.0 or newer required.");
+-			}
++			} */
+ 
++			if (version_compare(PHP_VERSION, '5.2.0', '<')) {
++				array_push($errors, "PHP version 5.2.0 or newer required.");
++			}
++			
+ 			if (CONFIG_VERSION != EXPECTED_CONFIG_VERSION) {
+ 				array_push($errors, "Configuration file (config.php) has incorrect version. Update it with new options from config.php-dist and set CONFIG_VERSION to the correct value.");
+ 			}
+diff --git a/1.7.9/index.php b/1.7.9/index.php
+index 29b8b17..2f5c444 100644
+--- a/1.7.9/index.php
++++ b/1.7.9/index.php
+@@ -11,11 +11,16 @@
+ 
+ 	// we need a separate check here because functions.php might get parsed
+ 	// incorrectly before 5.3 because of :: syntax.
+-	if (version_compare(PHP_VERSION, '5.3.0', '<')) {
++/*	if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+ 		print "<b>Fatal Error</b>: PHP version 5.3.0 or newer required.\n";
+ 		exit;
++	} */
++	if (version_compare(PHP_VERSION, '5.2.0', '<')) {
++		print "<b>Fatal Error</b>: PHP version 5.2.0 or newer required.\n";
++		exit;
+ 	}
+ 
++	
+ 	set_include_path(dirname(__FILE__) ."/include" . PATH_SEPARATOR .
+ 		get_include_path());
+ 
+@@ -104,7 +109,8 @@
+ 
+ 		foreach (PluginHost::getInstance()->get_plugins() as $n => $p) {
+ 			if (method_exists($p, "get_js")) {
+-				echo JShrink\Minifier::minify($p->get_js());
++/*				echo JShrink\Minifier::minify($p->get_js()); */
++				echo Minifier::minify($p->get_js());
+ 			}
+ 		}
+ 
+diff --git a/1.7.9/install/index.php b/1.7.9/install/index.php
+index 6cb2ace..fadb2a7 100644
+--- a/1.7.9/install/index.php
++++ b/1.7.9/install/index.php
+@@ -32,8 +32,12 @@
+ 	function sanity_check($db_type) {
+ 		$errors = array();
+ 
+-		if (version_compare(PHP_VERSION, '5.3.0', '<')) {
++/*		if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+ 			array_push($errors, "PHP version 5.3.0 or newer required.");
++		} */
++
++		if (version_compare(PHP_VERSION, '5.2.0', '<')) {
++			array_push($errors, "PHP version 5.2.0 or newer required.");
+ 		}
+ 
+ 		if (!function_exists("curl_init") && !ini_get("allow_url_fopen")) {
+diff --git a/1.7.9/lib/jshrink/Minifier.php b/1.7.9/lib/jshrink/Minifier.php
+index 0505498..297da7d 100644
+--- a/1.7.9/lib/jshrink/Minifier.php
++++ b/1.7.9/lib/jshrink/Minifier.php
+@@ -42,7 +42,7 @@
+  * @version    Release: 0.5.1
+  */
+ 
+- namespace JShrink;
++/* namespace JShrink; */
+ 
+ /**
+  * Minifier
+@@ -355,7 +355,8 @@ class Minifier
+ 				}
+ 
+ 				if($char === false)
+-					throw new \RuntimeException('Stray comment. ' . $this->index);
++					throw new RuntimeException('Stray comment. ' . $this->index);
++/*					throw new \RuntimeException('Stray comment. ' . $this->index); */
+ 
+ 				// if we're here c is part of the comment and therefore tossed
+ 				if(isset($this->c))
+@@ -406,7 +407,8 @@ class Minifier
+ 						break 2;
+ 
+ 					case "\n":
+-						throw new \RuntimeException('Unclosed string. ' . $this->index);
++/*						throw new \RuntimeException('Unclosed string. ' . $this->index); */
++						throw new RuntimeException('Unclosed string. ' . $this->index);
+ 						break;
+ 
+ 					case '\\':
+@@ -437,7 +439,8 @@ class Minifier
+ 			}
+ 
+ 			if($this->a == "\n")
+-				throw new \RuntimeException('Stray regex pattern. ' . $this->index);
++				throw new RuntimeException('Stray regex pattern. ' . $this->index);
++/*				throw new \RuntimeException('Stray regex pattern. ' . $this->index); */
+ 
+ 			echo $this->a;
+ 		}
+diff --git a/1.7.9/plugins/af_buttersafe/init.php b/1.7.9/plugins/af_buttersafe/init.php
+index 05e684a..368a103 100644
+--- a/1.7.9/plugins/af_buttersafe/init.php
++++ b/1.7.9/plugins/af_buttersafe/init.php
+@@ -12,7 +12,7 @@ class Af_Buttersafe extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff --git a/1.7.9/plugins/af_explosm/init.php b/1.7.9/plugins/af_explosm/init.php
+index dd10665..d2bd252 100644
+--- a/1.7.9/plugins/af_explosm/init.php
++++ b/1.7.9/plugins/af_explosm/init.php
+@@ -12,7 +12,7 @@ class Af_Explosm extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff --git a/1.7.9/plugins/af_gocomics/init.php b/1.7.9/plugins/af_gocomics/init.php
+index e95de9f..0b50d44 100644
+--- a/1.7.9/plugins/af_gocomics/init.php
++++ b/1.7.9/plugins/af_gocomics/init.php
+@@ -11,7 +11,7 @@ class Af_GoComics extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff --git a/1.7.9/plugins/af_pennyarcade/init.php b/1.7.9/plugins/af_pennyarcade/init.php
+index 8ad02e1..bfffabd 100644
+--- a/1.7.9/plugins/af_pennyarcade/init.php
++++ b/1.7.9/plugins/af_pennyarcade/init.php
+@@ -12,7 +12,7 @@ class Af_PennyArcade extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff --git a/1.7.9/plugins/af_redditimgur/init.php b/1.7.9/plugins/af_redditimgur/init.php
+index 39a2078..6bef97e 100644
+--- a/1.7.9/plugins/af_redditimgur/init.php
++++ b/1.7.9/plugins/af_redditimgur/init.php
+@@ -11,7 +11,7 @@ class Af_RedditImgur extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff --git a/1.7.9/plugins/af_unburn/init.php b/1.7.9/plugins/af_unburn/init.php
+index a97502b..f7634aa 100644
+--- a/1.7.9/plugins/af_unburn/init.php
++++ b/1.7.9/plugins/af_unburn/init.php
+@@ -11,7 +11,7 @@ class Af_Unburn extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_FILTER, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_FILTER, $this);
+ 	}
+ 
+ 	function hook_article_filter($article) {
+diff --git a/1.7.9/plugins/auth_internal/init.php b/1.7.9/plugins/auth_internal/init.php
+index 87c8555..22fb090 100644
+--- a/1.7.9/plugins/auth_internal/init.php
++++ b/1.7.9/plugins/auth_internal/init.php
+@@ -12,7 +12,7 @@ class Auth_Internal extends Plugin implements IAuthModule {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_AUTH_USER, $this);
++		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
+ 	}
+ 
+ 	function authenticate($login, $password) {
+@@ -20,6 +20,7 @@ class Auth_Internal extends Plugin implements IAuthModule {
+ 		$pwd_hash1 = encrypt_password($password);
+ 		$pwd_hash2 = encrypt_password($password, $login);
+ 		$login = db_escape_string($login);
++/*		
+ 		$otp = db_escape_string($_REQUEST["otp"]);
+ 
+ 		if (get_schema_version() > 96) {
+@@ -73,6 +74,7 @@ class Auth_Internal extends Plugin implements IAuthModule {
+ 				}
+ 			}
+ 		}
++*/
+ 
+ 		if (get_schema_version() > 87) {
+ 
+diff --git a/1.7.9/plugins/auth_remote/init.php b/1.7.9/plugins/auth_remote/init.php
+index 2ec2c87..e882376 100644
+--- a/1.7.9/plugins/auth_remote/init.php
++++ b/1.7.9/plugins/auth_remote/init.php
+@@ -15,7 +15,7 @@ class Auth_Remote extends Plugin implements IAuthModule {
+ 		$this->host = $host;
+ 		$this->base = new Auth_Base();
+ 
+-		$host->add_hook($host::HOOK_AUTH_USER, $this);
++		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
+ 	}
+ 
+ 	function get_login_by_ssl_certificate() {
+diff --git a/1.7.9/plugins/bookmarklets/init.php b/1.7.9/plugins/bookmarklets/init.php
+index 4c4d95d..f645628 100644
+--- a/1.7.9/plugins/bookmarklets/init.php
++++ b/1.7.9/plugins/bookmarklets/init.php
+@@ -11,7 +11,7 @@ class Bookmarklets extends Plugin {
+   function init($host) {
+     $this->host = $host;
+ 
+-    $host->add_hook($host::HOOK_PREFS_TAB, $this);
++    $host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+   }
+ 
+   function hook_prefs_tab($args) {
+diff --git a/1.7.9/plugins/close_button/init.php b/1.7.9/plugins/close_button/init.php
+index 7911642..0c39964 100644
+--- a/1.7.9/plugins/close_button/init.php
++++ b/1.7.9/plugins/close_button/init.php
+@@ -5,7 +5,7 @@ class Close_Button extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function about() {
+diff --git a/1.7.9/plugins/embed_original/init.php b/1.7.9/plugins/embed_original/init.php
+index df803d3..c621b96 100644
+--- a/1.7.9/plugins/embed_original/init.php
++++ b/1.7.9/plugins/embed_original/init.php
+@@ -5,7 +5,7 @@ class Embed_Original extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function about() {
+diff --git a/1.7.9/plugins/googlereaderimport/init.php b/1.7.9/plugins/googlereaderimport/init.php
+index 2e22161..3103830 100644
+--- a/1.7.9/plugins/googlereaderimport/init.php
++++ b/1.7.9/plugins/googlereaderimport/init.php
+@@ -17,7 +17,7 @@ class GoogleReaderImport extends Plugin {
+ 			"import data in Google Reader JSON format",
+ 			$this, ":", "FILE");
+ 
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 	}
+ 
+ 	function greader_import($args) {
+diff --git a/1.7.9/plugins/googlereaderkeys/init.php b/1.7.9/plugins/googlereaderkeys/init.php
+index c8e7d7a..93b3e11 100644
+--- a/1.7.9/plugins/googlereaderkeys/init.php
++++ b/1.7.9/plugins/googlereaderkeys/init.php
+@@ -11,7 +11,7 @@ class GoogleReaderKeys extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_HOTKEY_MAP, $this);
++		$host->add_hook(PluginHost::HOOK_HOTKEY_MAP, $this);
+ 	}
+ 
+ 	function hook_hotkey_map($hotkeys) {
+diff --git a/1.7.9/plugins/import_export/init.php b/1.7.9/plugins/import_export/init.php
+index d4bdec8..527646a 100644
+--- a/1.7.9/plugins/import_export/init.php
++++ b/1.7.9/plugins/import_export/init.php
+@@ -5,7 +5,7 @@ class Import_Export extends Plugin implements IHandler {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 		$host->add_command("xml-import", "import articles from XML", $this, ":", "FILE");
+ 	}
+ 
+diff --git a/1.7.9/plugins/instances/init.php b/1.7.9/plugins/instances/init.php
+index aac2819..44881a9 100644
+--- a/1.7.9/plugins/instances/init.php
++++ b/1.7.9/plugins/instances/init.php
+@@ -18,11 +18,11 @@ class Instances extends Plugin implements IHandler {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_PREFS_TABS, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TABS, $this);
+ 		$host->add_handler("pref-instances", "*", $this);
+ 		$host->add_handler("public", "fbexport", $this);
+ 		$host->add_command("get-feeds", "receive popular feeds from linked instances", $this);
+-		$host->add_hook($host::HOOK_UPDATE_TASK, $this);
++		$host->add_hook(PluginHost::HOOK_UPDATE_TASK, $this);
+ 	}
+ 
+ 	function hook_update_task($args) {
+diff --git a/1.7.9/plugins/mail/init.php b/1.7.9/plugins/mail/init.php
+index 80bc7d4..d414d6d 100644
+--- a/1.7.9/plugins/mail/init.php
++++ b/1.7.9/plugins/mail/init.php
+@@ -12,7 +12,7 @@ class Mail extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff --git a/1.7.9/plugins/mailto/init.php b/1.7.9/plugins/mailto/init.php
+index aa6d173..3a5c9b0 100644
+--- a/1.7.9/plugins/mailto/init.php
++++ b/1.7.9/plugins/mailto/init.php
+@@ -11,7 +11,7 @@ class MailTo extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff --git a/1.7.9/plugins/mark_button/init.php b/1.7.9/plugins/mark_button/init.php
+index 971b129..bccccf9 100644
+--- a/1.7.9/plugins/mark_button/init.php
++++ b/1.7.9/plugins/mark_button/init.php
+@@ -5,7 +5,7 @@ class Mark_Button extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function about() {
+diff --git a/1.7.9/plugins/note/init.php b/1.7.9/plugins/note/init.php
+index 2a32961..e709c64 100644
+--- a/1.7.9/plugins/note/init.php
++++ b/1.7.9/plugins/note/init.php
+@@ -11,7 +11,7 @@ class Note extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff --git a/1.7.9/plugins/nsfw/init.php b/1.7.9/plugins/nsfw/init.php
+index a57aa44..d5683b9 100644
+--- a/1.7.9/plugins/nsfw/init.php
++++ b/1.7.9/plugins/nsfw/init.php
+@@ -12,9 +12,9 @@ class NSFW extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this);
+-		$host->add_hook($host::HOOK_RENDER_ARTICLE_CDM, $this);
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_RENDER_ARTICLE, $this);
++		$host->add_hook(PluginHost::HOOK_RENDER_ARTICLE_CDM, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 
+ 	}
+ 
+diff --git a/1.7.9/plugins/share/init.php b/1.7.9/plugins/share/init.php
+index 72a4d4b..1513038 100644
+--- a/1.7.9/plugins/share/init.php
++++ b/1.7.9/plugins/share/init.php
+@@ -11,7 +11,7 @@ class Share extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_ARTICLE_BUTTON, $this);
++		$host->add_hook(PluginHost::HOOK_ARTICLE_BUTTON, $this);
+ 	}
+ 
+ 	function get_js() {
+diff --git a/1.7.9/plugins/swap_jk/init.php b/1.7.9/plugins/swap_jk/init.php
+index e60e720..808ab2b 100644
+--- a/1.7.9/plugins/swap_jk/init.php
++++ b/1.7.9/plugins/swap_jk/init.php
+@@ -12,7 +12,7 @@ class Swap_JK extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_HOTKEY_MAP, $this);
++		$host->add_hook(PluginHost::HOOK_HOTKEY_MAP, $this);
+ 	}
+ 
+ 	function hook_hotkey_map($hotkeys) {
+diff --git a/1.7.9/plugins/updater/init.php b/1.7.9/plugins/updater/init.php
+index fa283c8..fb9a7ed 100644
+--- a/1.7.9/plugins/updater/init.php
++++ b/1.7.9/plugins/updater/init.php
+@@ -13,7 +13,7 @@ class Updater extends Plugin {
+ 	function init($host) {
+ 		$this->host = $host;
+ 
+-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
++		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
+ 
+ 		$host->add_command("update-self",
+ 			"update tt-rss installation to latest version",
+diff --git a/1.7.9/prefs.php b/1.7.9/prefs.php
+index b617d94..f5b81c5 100644
+--- a/1.7.9/prefs.php
++++ b/1.7.9/prefs.php
+@@ -68,7 +68,8 @@
+ 
+ 		foreach (PluginHost::getInstance()->get_plugins() as $n => $p) {
+ 			if (method_exists($p, "get_prefs_js")) {
+-				echo JShrink\Minifier::minify($p->get_prefs_js());
++/*				echo JShrink\Minifier::minify($p->get_prefs_js()); */
++				echo Minifier::minify($p->get_prefs_js());
+ 			}
+ 		}
+ 
+diff --git a/1.7.9/update.php b/1.7.9/update.php
+index f542a39..3d7b6da 100644
+--- a/1.7.9/update.php
++++ b/1.7.9/update.php
+@@ -1,353 +1,353 @@
+-#!/usr/bin/env php
+-<?php
+-	set_include_path(dirname(__FILE__) ."/include" . PATH_SEPARATOR .
+-		get_include_path());
+-
+-	define('DISABLE_SESSIONS', true);
+-
+-	chdir(dirname(__FILE__));
+-
+-	require_once "autoload.php";
+-	require_once "functions.php";
+-	require_once "rssfuncs.php";
+-	require_once "config.php";
+-	require_once "sanity_check.php";
+-	require_once "db.php";
+-	require_once "db-prefs.php";
+-
+-	if (!defined('PHP_EXECUTABLE'))
+-		define('PHP_EXECUTABLE', '/usr/bin/php');
+-
+-	init_plugins();
+-
+-	$longopts = array("feeds",
+-			"feedbrowser",
+-			"daemon",
+-			"daemon-loop",
+-			"task:",
+-			"cleanup-tags",
+-			"quiet",
+-			"log:",
+-			"indexes",
+-			"pidlock:",
+-			"update-schema",
+-			"convert-filters",
+-			"force-update",
+-			"list-plugins",
+-			"help");
+-
+-	foreach (PluginHost::getInstance()->get_commands() as $command => $data) {
+-		array_push($longopts, $command . $data["suffix"]);
+-	}
+-
+-	$options = getopt("", $longopts);
+-
+-	if (count($options) == 0 && !defined('STDIN')) {
+-		?> <html>
+-		<head>
+-		<title>Tiny Tiny RSS data update script.</title>
+-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+-		<link rel="stylesheet" type="text/css" href="utility.css">
+-		</head>
+-
+-		<body>
+-		<div class="floatingLogo"><img src="images/logo_small.png"></div>
+-		<h1><?php echo __("Tiny Tiny RSS data update script.") ?></h1>
+-
+-		<?php print_error("Please run this script from the command line. Use option \"-help\" to display command help if this error is displayed erroneously."); ?>
+-
+-		</body></html>
+-	<?php
+-		exit;
+-	}
+-
+-	if (count($options) == 0 || isset($options["help"]) ) {
+-		print "Tiny Tiny RSS data update script.\n\n";
+-		print "Options:\n";
+-		print "  --feeds              - update feeds\n";
+-		print "  --feedbrowser        - update feedbrowser\n";
+-		print "  --daemon             - start single-process update daemon\n";
+-		print "  --task N             - create lockfile using this task id\n";
+-		print "  --cleanup-tags       - perform tags table maintenance\n";
+-		print "  --quiet              - don't output messages to stdout\n";
+-		print "  --log FILE           - log messages to FILE\n";
+-		print "  --indexes            - recreate missing schema indexes\n";
+-		print "  --update-schema      - update database schema\n";
+-		print "  --convert-filters    - convert type1 filters to type2\n";
+-		print "  --force-update       - force update of all feeds\n";
+-		print "  --list-plugins       - list all available plugins\n";
+-		print "  --help               - show this help\n";
+-		print "Plugin options:\n";
+-
+-		foreach (PluginHost::getInstance()->get_commands() as $command => $data) {
+-			$args = $data['arghelp'];
+-			printf(" --%-19s - %s\n", "$command $args", $data["description"]);
+-		}
+-
+-		return;
+-	}
+-
+-	if (!isset($options['daemon'])) {
+-		require_once "errorhandler.php";
+-	}
+-
+-	if (!isset($options['update-schema'])) {
+-		$schema_version = get_schema_version();
+-
+-		if ($schema_version != SCHEMA_VERSION) {
+-			die("Schema version is wrong, please upgrade the database.\n");
+-		}
+-	}
+-
+-	define('QUIET', isset($options['quiet']));
+-
+-	if (isset($options["log"])) {
+-		_debug("Logging to " . $options["log"]);
+-		define('LOGFILE', $options["log"]);
+-	}
+-
+-	if (!isset($options["daemon"])) {
+-		$lock_filename = "update.lock";
+-	} else {
+-		$lock_filename = "update_daemon.lock";
+-	}
+-
+-	if (isset($options["task"])) {
+-		_debug("Using task id " . $options["task"]);
+-		$lock_filename = $lock_filename . "-task_" . $options["task"];
+-	}
+-
+-	if (isset($options["pidlock"])) {
+-		$my_pid = $options["pidlock"];
+-		$lock_filename = "update_daemon-$my_pid.lock";
+-
+-	}
+-
+-	_debug("Lock: $lock_filename");
+-
+-	$lock_handle = make_lockfile($lock_filename);
+-	$must_exit = false;
+-
+-	if (isset($options["task"]) && isset($options["pidlock"])) {
+-		$waits = $options["task"] * 5;
+-		_debug("Waiting before update ($waits)");
+-		sleep($waits);
+-	}
+-
+-	// Try to lock a file in order to avoid concurrent update.
+-	if (!$lock_handle) {
+-		die("error: Can't create lockfile ($lock_filename). ".
+-			"Maybe another update process is already running.\n");
+-	}
+-
+-	if (isset($options["force-update"])) {
+-		_debug("marking all feeds as needing update...");
+-
+-		db_query( "UPDATE ttrss_feeds SET last_update_started = '1970-01-01',
+-				last_updated = '1970-01-01'");
+-	}
+-
+-	if (isset($options["feeds"])) {
+-		update_daemon_common();
+-		housekeeping_common(true);
+-
+-		PluginHost::getInstance()->run_hooks(PluginHost::HOOK_UPDATE_TASK, "hook_update_task", $op);
+-	}
+-
+-	if (isset($options["feedbrowser"])) {
+-		$count = update_feedbrowser_cache();
+-		print "Finished, $count feeds processed.\n";
+-	}
+-
+-	if (isset($options["daemon"])) {
+-		while (true) {
+-			$quiet = (isset($options["quiet"])) ? "--quiet" : "";
+-
+-			passthru(PHP_EXECUTABLE . " " . $argv[0] ." --daemon-loop $quiet");
+-			_debug("Sleeping for " . DAEMON_SLEEP_INTERVAL . " seconds...");
+-			sleep(DAEMON_SLEEP_INTERVAL);
+-		}
+-	}
+-
+-	if (isset($options["daemon-loop"])) {
+-		if (!make_stampfile('update_daemon.stamp')) {
+-			_debug("warning: unable to create stampfile\n");
+-		}
+-
+-		update_daemon_common(isset($options["pidlock"]) ? 50 : DAEMON_FEED_LIMIT);
+-		housekeeping_common(true);
+-
+-		PluginHost::getInstance()->run_hooks(PluginHost::HOOK_UPDATE_TASK, "hook_update_task", $op);
+-	}
+-
+-	if (isset($options["cleanup-tags"])) {
+-		$rc = cleanup_tags( 14, 50000);
+-		_debug("$rc tags deleted.\n");
+-	}
+-
+-	if (isset($options["indexes"])) {
+-		_debug("PLEASE BACKUP YOUR DATABASE BEFORE PROCEEDING!");
+-		_debug("Type 'yes' to continue.");
+-
+-		if (read_stdin() != 'yes')
+-			exit;
+-
+-		_debug("clearing existing indexes...");
+-
+-		if (DB_TYPE == "pgsql") {
+-			$result = db_query( "SELECT relname FROM
+-				pg_catalog.pg_class WHERE relname LIKE 'ttrss_%'
+-					AND relname NOT LIKE '%_pkey'
+-				AND relkind = 'i'");
+-		} else {
+-			$result = db_query( "SELECT index_name,table_name FROM
+-				information_schema.statistics WHERE index_name LIKE 'ttrss_%'");
+-		}
+-
+-		while ($line = db_fetch_assoc($result)) {
+-			if (DB_TYPE == "pgsql") {
+-				$statement = "DROP INDEX " . $line["relname"];
+-				_debug($statement);
+-			} else {
+-				$statement = "ALTER TABLE ".
+-					$line['table_name']." DROP INDEX ".$line['index_name'];
+-				_debug($statement);
+-			}
+-			db_query( $statement, false);
+-		}
+-
+-		_debug("reading indexes from schema for: " . DB_TYPE);
+-
+-		$fp = fopen("schema/ttrss_schema_" . DB_TYPE . ".sql", "r");
+-		if ($fp) {
+-			while ($line = fgets($fp)) {
+-				$matches = array();
+-
+-				if (preg_match("/^create index ([^ ]+) on ([^ ]+)$/i", $line, $matches)) {
+-					$index = $matches[1];
+-					$table = $matches[2];
+-
+-					$statement = "CREATE INDEX $index ON $table";
+-
+-					_debug($statement);
+-					db_query( $statement);
+-				}
+-			}
+-			fclose($fp);
+-		} else {
+-			_debug("unable to open schema file.");
+-		}
+-		_debug("all done.");
+-	}
+-
+-	if (isset($options["convert-filters"])) {
+-		_debug("WARNING: this will remove all existing type2 filters.");
+-		_debug("Type 'yes' to continue.");
+-
+-		if (read_stdin() != 'yes')
+-			exit;
+-
+-		_debug("converting filters...");
+-
+-		db_query( "DELETE FROM ttrss_filters2");
+-
+-		$result = db_query( "SELECT * FROM ttrss_filters ORDER BY id");
+-
+-		while ($line = db_fetch_assoc($result)) {
+-			$owner_uid = $line["owner_uid"];
+-
+-			// date filters are removed
+-			if ($line["filter_type"] != 5) {
+-				$filter = array();
+-
+-				if (sql_bool_to_bool($line["cat_filter"])) {
+-					$feed_id = "CAT:" . (int)$line["cat_id"];
+-				} else {
+-					$feed_id = (int)$line["feed_id"];
+-				}
+-
+-				$filter["enabled"] = $line["enabled"] ? "on" : "off";
+-				$filter["rule"] = array(
+-					json_encode(array(
+-						"reg_exp" => $line["reg_exp"],
+-						"feed_id" => $feed_id,
+-						"filter_type" => $line["filter_type"])));
+-
+-				$filter["action"] = array(
+-					json_encode(array(
+-						"action_id" => $line["action_id"],
+-						"action_param_label" => $line["action_param"],
+-						"action_param" => $line["action_param"])));
+-
+-				// Oh god it's full of hacks
+-
+-				$_REQUEST = $filter;
+-				$_SESSION["uid"] = $owner_uid;
+-
+-				$filters = new Pref_Filters($_REQUEST);
+-				$filters->add();
+-			}
+-		}
+-
+-	}
+-
+-	if (isset($options["update-schema"])) {
+-		_debug("checking for updates (" . DB_TYPE . ")...");
+-
+-		$updater = new DbUpdater(Db::get(), DB_TYPE, SCHEMA_VERSION);
+-
+-		if ($updater->isUpdateRequired()) {
+-			_debug("schema update required, version " . $updater->getSchemaVersion() . " to " . SCHEMA_VERSION);
+-			_debug("WARNING: please backup your database before continuing.");
+-			_debug("Type 'yes' to continue.");
+-
+-			if (read_stdin() != 'yes')
+-				exit;
+-
+-			for ($i = $updater->getSchemaVersion() + 1; $i <= SCHEMA_VERSION; $i++) {
+-				_debug("performing update up to version $i...");
+-
+-				$result = $updater->performUpdateTo($i);
+-
+-				_debug($result ? "OK!" : "FAILED!");
+-
+-				if (!$result) return;
+-
+-			}
+-		} else {
+-			_debug("update not required.");
+-		}
+-
+-	}
+-
+-	if (isset($options["list-plugins"])) {
+-		$tmppluginhost = new PluginHost();
+-		$tmppluginhost->load_all($tmppluginhost::KIND_ALL);
+-		$enabled = array_map("trim", explode(",", PLUGINS));
+-
+-		echo "List of all available plugins:\n";
+-
+-		foreach ($tmppluginhost->get_plugins() as $name => $plugin) {
+-			$about = $plugin->about();
+-
+-			$status = $about[3] ? "system" : "user";
+-
+-			if (in_array($name, $enabled)) $name .= "*";
+-
+-			printf("%-50s %-10s v%.2f (by %s)\n%s\n\n",
+-				$name, $status, $about[0], $about[2], $about[1]);
+-		}
+-
+-		echo "Plugins marked by * are currently enabled for all users.\n";
+-
+-	}
+-
+-	PluginHost::getInstance()->run_commands($options);
+-
+-	if ($lock_handle != false) {
+-		fclose($lock_handle);
+-	}
+-
+-	if (file_exists(LOCK_DIRECTORY . "/$lock_filename"))
+-		unlink(LOCK_DIRECTORY . "/$lock_filename");
+-?>
++#!/usr/bin/env php
++<?php
++	set_include_path(dirname(__FILE__) ."/include" . PATH_SEPARATOR .
++		get_include_path());
++
++	define('DISABLE_SESSIONS', true);
++
++	chdir(dirname(__FILE__));
++
++	require_once "autoload.php";
++	require_once "functions.php";
++	require_once "rssfuncs.php";
++	require_once "config.php";
++	require_once "sanity_check.php";
++	require_once "db.php";
++	require_once "db-prefs.php";
++
++	if (!defined('PHP_EXECUTABLE'))
++		define('PHP_EXECUTABLE', '/usr/bin/php');
++
++	init_plugins();
++
++	$longopts = array("feeds",
++			"feedbrowser",
++			"daemon",
++			"daemon-loop",
++			"task:",
++			"cleanup-tags",
++			"quiet",
++			"log:",
++			"indexes",
++			"pidlock:",
++			"update-schema",
++			"convert-filters",
++			"force-update",
++			"list-plugins",
++			"help");
++
++	foreach (PluginHost::getInstance()->get_commands() as $command => $data) {
++		array_push($longopts, $command . $data["suffix"]);
++	}
++
++	$options = getopt("", $longopts);
++
++	if (count($options) == 0 && !defined('STDIN')) {
++		?> <html>
++		<head>
++		<title>Tiny Tiny RSS data update script.</title>
++		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
++		<link rel="stylesheet" type="text/css" href="utility.css">
++		</head>
++
++		<body>
++		<div class="floatingLogo"><img src="images/logo_small.png"></div>
++		<h1><?php echo __("Tiny Tiny RSS data update script.") ?></h1>
++
++		<?php print_error("Please run this script from the command line. Use option \"-help\" to display command help if this error is displayed erroneously."); ?>
++
++		</body></html>
++	<?php
++		exit;
++	}
++
++	if (count($options) == 0 || isset($options["help"]) ) {
++		print "Tiny Tiny RSS data update script.\n\n";
++		print "Options:\n";
++		print "  --feeds              - update feeds\n";
++		print "  --feedbrowser        - update feedbrowser\n";
++		print "  --daemon             - start single-process update daemon\n";
++		print "  --task N             - create lockfile using this task id\n";
++		print "  --cleanup-tags       - perform tags table maintenance\n";
++		print "  --quiet              - don't output messages to stdout\n";
++		print "  --log FILE           - log messages to FILE\n";
++		print "  --indexes            - recreate missing schema indexes\n";
++		print "  --update-schema      - update database schema\n";
++		print "  --convert-filters    - convert type1 filters to type2\n";
++		print "  --force-update       - force update of all feeds\n";
++		print "  --list-plugins       - list all available plugins\n";
++		print "  --help               - show this help\n";
++		print "Plugin options:\n";
++
++		foreach (PluginHost::getInstance()->get_commands() as $command => $data) {
++			$args = $data['arghelp'];
++			printf(" --%-19s - %s\n", "$command $args", $data["description"]);
++		}
++
++		return;
++	}
++
++	if (!isset($options['daemon'])) {
++		require_once "errorhandler.php";
++	}
++
++	if (!isset($options['update-schema'])) {
++		$schema_version = get_schema_version();
++
++		if ($schema_version != SCHEMA_VERSION) {
++			die("Schema version is wrong, please upgrade the database.\n");
++		}
++	}
++
++	define('QUIET', isset($options['quiet']));
++
++	if (isset($options["log"])) {
++		_debug("Logging to " . $options["log"]);
++		define('LOGFILE', $options["log"]);
++	}
++
++	if (!isset($options["daemon"])) {
++		$lock_filename = "update.lock";
++	} else {
++		$lock_filename = "update_daemon.lock";
++	}
++
++	if (isset($options["task"])) {
++		_debug("Using task id " . $options["task"]);
++		$lock_filename = $lock_filename . "-task_" . $options["task"];
++	}
++
++	if (isset($options["pidlock"])) {
++		$my_pid = $options["pidlock"];
++		$lock_filename = "update_daemon-$my_pid.lock";
++
++	}
++
++	_debug("Lock: $lock_filename");
++
++	$lock_handle = make_lockfile($lock_filename);
++	$must_exit = false;
++
++	if (isset($options["task"]) && isset($options["pidlock"])) {
++		$waits = $options["task"] * 5;
++		_debug("Waiting before update ($waits)");
++		sleep($waits);
++	}
++
++	// Try to lock a file in order to avoid concurrent update.
++	if (!$lock_handle) {
++		die("error: Can't create lockfile ($lock_filename). ".
++			"Maybe another update process is already running.\n");
++	}
++
++	if (isset($options["force-update"])) {
++		_debug("marking all feeds as needing update...");
++
++		db_query( "UPDATE ttrss_feeds SET last_update_started = '1970-01-01',
++				last_updated = '1970-01-01'");
++	}
++
++	if (isset($options["feeds"])) {
++		update_daemon_common();
++		housekeeping_common(true);
++
++		PluginHost::getInstance()->run_hooks(PluginHost::HOOK_UPDATE_TASK, "hook_update_task", $op);
++	}
++
++	if (isset($options["feedbrowser"])) {
++		$count = update_feedbrowser_cache();
++		print "Finished, $count feeds processed.\n";
++	}
++
++	if (isset($options["daemon"])) {
++		while (true) {
++			$quiet = (isset($options["quiet"])) ? "--quiet" : "";
++
++			passthru(PHP_EXECUTABLE . " " . $argv[0] ." --daemon-loop $quiet");
++			_debug("Sleeping for " . DAEMON_SLEEP_INTERVAL . " seconds...");
++			sleep(DAEMON_SLEEP_INTERVAL);
++		}
++	}
++
++	if (isset($options["daemon-loop"])) {
++		if (!make_stampfile('update_daemon.stamp')) {
++			_debug("warning: unable to create stampfile\n");
++		}
++
++		update_daemon_common(isset($options["pidlock"]) ? 50 : DAEMON_FEED_LIMIT);
++		housekeeping_common(true);
++
++		PluginHost::getInstance()->run_hooks(PluginHost::HOOK_UPDATE_TASK, "hook_update_task", $op);
++	}
++
++	if (isset($options["cleanup-tags"])) {
++		$rc = cleanup_tags( 14, 50000);
++		_debug("$rc tags deleted.\n");
++	}
++
++	if (isset($options["indexes"])) {
++		_debug("PLEASE BACKUP YOUR DATABASE BEFORE PROCEEDING!");
++		_debug("Type 'yes' to continue.");
++
++		if (read_stdin() != 'yes')
++			exit;
++
++		_debug("clearing existing indexes...");
++
++		if (DB_TYPE == "pgsql") {
++			$result = db_query( "SELECT relname FROM
++				pg_catalog.pg_class WHERE relname LIKE 'ttrss_%'
++					AND relname NOT LIKE '%_pkey'
++				AND relkind = 'i'");
++		} else {
++			$result = db_query( "SELECT index_name,table_name FROM
++				information_schema.statistics WHERE index_name LIKE 'ttrss_%'");
++		}
++
++		while ($line = db_fetch_assoc($result)) {
++			if (DB_TYPE == "pgsql") {
++				$statement = "DROP INDEX " . $line["relname"];
++				_debug($statement);
++			} else {
++				$statement = "ALTER TABLE ".
++					$line['table_name']." DROP INDEX ".$line['index_name'];
++				_debug($statement);
++			}
++			db_query( $statement, false);
++		}
++
++		_debug("reading indexes from schema for: " . DB_TYPE);
++
++		$fp = fopen("schema/ttrss_schema_" . DB_TYPE . ".sql", "r");
++		if ($fp) {
++			while ($line = fgets($fp)) {
++				$matches = array();
++
++				if (preg_match("/^create index ([^ ]+) on ([^ ]+)$/i", $line, $matches)) {
++					$index = $matches[1];
++					$table = $matches[2];
++
++					$statement = "CREATE INDEX $index ON $table";
++
++					_debug($statement);
++					db_query( $statement);
++				}
++			}
++			fclose($fp);
++		} else {
++			_debug("unable to open schema file.");
++		}
++		_debug("all done.");
++	}
++
++	if (isset($options["convert-filters"])) {
++		_debug("WARNING: this will remove all existing type2 filters.");
++		_debug("Type 'yes' to continue.");
++
++		if (read_stdin() != 'yes')
++			exit;
++
++		_debug("converting filters...");
++
++		db_query( "DELETE FROM ttrss_filters2");
++
++		$result = db_query( "SELECT * FROM ttrss_filters ORDER BY id");
++
++		while ($line = db_fetch_assoc($result)) {
++			$owner_uid = $line["owner_uid"];
++
++			// date filters are removed
++			if ($line["filter_type"] != 5) {
++				$filter = array();
++
++				if (sql_bool_to_bool($line["cat_filter"])) {
++					$feed_id = "CAT:" . (int)$line["cat_id"];
++				} else {
++					$feed_id = (int)$line["feed_id"];
++				}
++
++				$filter["enabled"] = $line["enabled"] ? "on" : "off";
++				$filter["rule"] = array(
++					json_encode(array(
++						"reg_exp" => $line["reg_exp"],
++						"feed_id" => $feed_id,
++						"filter_type" => $line["filter_type"])));
++
++				$filter["action"] = array(
++					json_encode(array(
++						"action_id" => $line["action_id"],
++						"action_param_label" => $line["action_param"],
++						"action_param" => $line["action_param"])));
++
++				// Oh god it's full of hacks
++
++				$_REQUEST = $filter;
++				$_SESSION["uid"] = $owner_uid;
++
++				$filters = new Pref_Filters($_REQUEST);
++				$filters->add();
++			}
++		}
++
++	}
++
++	if (isset($options["update-schema"])) {
++		_debug("checking for updates (" . DB_TYPE . ")...");
++
++		$updater = new DbUpdater(Db::get(), DB_TYPE, SCHEMA_VERSION);
++
++		if ($updater->isUpdateRequired()) {
++			_debug("schema update required, version " . $updater->getSchemaVersion() . " to " . SCHEMA_VERSION);
++			_debug("WARNING: please backup your database before continuing.");
++			_debug("Type 'yes' to continue.");
++
++			if (read_stdin() != 'yes')
++				exit;
++
++			for ($i = $updater->getSchemaVersion() + 1; $i <= SCHEMA_VERSION; $i++) {
++				_debug("performing update up to version $i...");
++
++				$result = $updater->performUpdateTo($i);
++
++				_debug($result ? "OK!" : "FAILED!");
++
++				if (!$result) return;
++
++			}
++		} else {
++			_debug("update not required.");
++		}
++
++	}
++
++	if (isset($options["list-plugins"])) {
++		$tmppluginhost = new PluginHost();
++		$tmppluginhost->load_all(PluginHost::KIND_ALL);
++		$enabled = array_map("trim", explode(",", PLUGINS));
++
++		echo "List of all available plugins:\n";
++
++		foreach ($tmppluginhost->get_plugins() as $name => $plugin) {
++			$about = $plugin->about();
++
++			$status = $about[3] ? "system" : "user";
++
++			if (in_array($name, $enabled)) $name .= "*";
++
++			printf("%-50s %-10s v%.2f (by %s)\n%s\n\n",
++				$name, $status, $about[0], $about[2], $about[1]);
++		}
++
++		echo "Plugins marked by * are currently enabled for all users.\n";
++
++	}
++
++	PluginHost::getInstance()->run_commands($options);
++
++	if ($lock_handle != false) {
++		fclose($lock_handle);
++	}
++
++	if (file_exists(LOCK_DIRECTORY . "/$lock_filename"))
++		unlink(LOCK_DIRECTORY . "/$lock_filename");
++?>

@@ -13,7 +13,7 @@ class Updater extends Plugin {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
+		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
 
 		$host->add_command("update-self",
 			"update tt-rss installation to latest version",

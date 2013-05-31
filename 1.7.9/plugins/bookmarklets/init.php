@@ -11,7 +11,7 @@ class Bookmarklets extends Plugin {
   function init($host) {
     $this->host = $host;
 
-    $host->add_hook($host::HOOK_PREFS_TAB, $this);
+    $host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
   }
 
   function hook_prefs_tab($args) {

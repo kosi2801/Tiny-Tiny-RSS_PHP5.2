@@ -4127,7 +4127,8 @@
 					$rv .= file_get_contents($cached_file);
 
 				} else {
-					$minified = JShrink\Minifier::minify(file_get_contents("js/$js.js"));
+/*					$minified = JShrink\Minifier::minify(file_get_contents("js/$js.js")); */
+					$minified = Minifier::minify(file_get_contents("js/$js.js"));
 					file_put_contents($cached_file, $minified);
 					$rv .= $minified;
 				}

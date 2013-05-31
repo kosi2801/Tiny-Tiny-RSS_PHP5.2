@@ -17,7 +17,7 @@ class GoogleReaderImport extends Plugin {
 			"import data in Google Reader JSON format",
 			$this, ":", "FILE");
 
-		$host->add_hook($host::HOOK_PREFS_TAB, $this);
+		$host->add_hook(PluginHost::HOOK_PREFS_TAB, $this);
 	}
 
 	function greader_import($args) {

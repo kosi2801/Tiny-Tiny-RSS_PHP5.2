@@ -12,7 +12,7 @@ class Auth_Internal extends Plugin implements IAuthModule {
 	function init($host) {
 		$this->host = $host;
 
-		$host->add_hook($host::HOOK_AUTH_USER, $this);
+		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
 	}
 
 	function authenticate($login, $password) {
@@ -20,6 +20,7 @@ class Auth_Internal extends Plugin implements IAuthModule {
 		$pwd_hash1 = encrypt_password($password);
 		$pwd_hash2 = encrypt_password($password, $login);
 		$login = db_escape_string($login);
+/*		
 		$otp = db_escape_string($_REQUEST["otp"]);
 
 		if (get_schema_version() > 96) {
@@ -73,6 +74,7 @@ class Auth_Internal extends Plugin implements IAuthModule {
 				}
 			}
 		}
+*/
 
 		if (get_schema_version() > 87) {
 
