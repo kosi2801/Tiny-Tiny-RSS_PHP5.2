@@ -8,7 +8,7 @@ solutions which do not meet the original Tiny Tiny RSS requirements.
 
 ## Changes
 
-Currently the source is functional identical to [Tiny Tiny RSS 1.7.8][2] but
+Currently the source is functional identical to [Tiny Tiny RSS 1.7.9][2] but
 with patches to work with following relaxed requirements compared to the 
 [original PHP requirements][3]:
 
@@ -17,7 +17,7 @@ with patches to work with following relaxed requirements compared to the
 
 Bugs/Issues
 
-* One Time Passwords are currently disabled because compatibility issues with PHP 5.2
+* One Time Passwords are currently disabled because namespace compatibility issues with PHP 5.2
 
 ## Installation
 
@@ -33,6 +33,6 @@ Copyright for original Tiny Tiny RSS is (c) Andrew Dolgov.
 Licensed under GNU GPL version 2.
 
 [1]: http://tt-rss.org
-[2]: https://github.com/gothfox/Tiny-Tiny-RSS/tree/1.7.8
+[2]: https://github.com/gothfox/Tiny-Tiny-RSS/tree/1.7.9
 [3]: http://tt-rss.org/redmine/projects/tt-rss/wiki/PhpCompatibilityNotes
 [4]: http://tt-rss.org/wiki/InstallationNotes
