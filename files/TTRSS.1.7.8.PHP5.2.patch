@@ -361,7 +361,7 @@ diff -u -r Tiny-Tiny-RSS-1.7.8/include/functions.php Tiny-Tiny-RSS-1.7.8 - patch
  				} else {
 -					$minified = JShrink\Minifier::minify(file_get_contents("js/$js.js"));
 +					$minified = Minifier::minify(file_get_contents("js/$js.js"));
-+					$minified = file_get_contents("js/$js.js");
++					/* $minified = file_get_contents("js/$js.js"); */
  					file_put_contents($cached_file, $minified);
  					$rv .= $minified;
  				}
@@ -641,7 +641,7 @@ diff -u -r Tiny-Tiny-RSS-1.7.8/plugins/auth_internal/init.php Tiny-Tiny-RSS-1.7.
 -		$host->add_hook($host::HOOK_AUTH_USER, $this);
 +		$host->add_hook(PluginHost::HOOK_AUTH_USER, $this);
 +		
-+		error_log("Hook added");
++		/* error_log("Hook added"); */
  	}
  
  	function authenticate($login, $password) {
@@ -938,7 +938,7 @@ diff -u -r Tiny-Tiny-RSS-1.7.8/prefs.php Tiny-Tiny-RSS-1.7.8 - patched for old P
  			if (method_exists($p, "get_prefs_js")) {
 -				echo JShrink\Minifier::minify($p->get_prefs_js());
 +				echo Minifier::minify($p->get_prefs_js());
-+				echo $p->get_prefs_js();
++				/*echo $p->get_prefs_js(); */
  			}
  		}
  

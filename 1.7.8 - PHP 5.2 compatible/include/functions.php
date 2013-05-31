@@ -4092,7 +4092,6 @@
 
 				} else {
 					$minified = Minifier::minify(file_get_contents("js/$js.js"));
-					$minified = file_get_contents("js/$js.js");
 					file_put_contents($cached_file, $minified);
 					$rv .= $minified;
 				}
